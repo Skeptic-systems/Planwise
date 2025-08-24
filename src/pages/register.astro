@@ -1,0 +1,42 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { RegisterForm } from "../auth/register-form";
+---
+
+<Layout title="Planwise - Register">
+  <div class="grid min-h-screen lg:grid-cols-2">
+    <!-- Left: same structure as login, but force black text -->
+    <div class="flex flex-col justify-between p-8 lg:p-12 text-black">
+      <!-- Brand -->
+    <div class="flex justify-center md:justify-start">
+        <a href="/" class="flex items-center gap-3 font-semibold tracking-tight text-white hover:underline">
+            <img src="/whiteplanwise.svg" alt="Planwise Logo" class="h-8 w-8" />
+            <span class="text-lg">Planwise</span>
+        </a>
+    </div>
+
+      <!-- Form centered vertically -->
+      <div class="flex flex-1 items-center justify-center">
+        <div class="w-full max-w-sm">
+          <RegisterForm client:load />
+        </div>
+      </div>
+
+
+      <!-- Footer -->
+      <div class="text-xs text-gray-500 text-center lg:text-left">
+        © {new Date().getFullYear()} Planwise. All rights reserved.
+      </div>
+    </div>
+
+    <!-- Right: full-height image -->
+    <div class="relative hidden lg:block">
+      <img
+        src="/loginbg.jpg"
+        alt="Login Background"
+        class="absolute inset-0 h-full w-full object-cover brightness-75"
+      />
+      <div class="absolute inset-0 bg-gradient-to-tr from-black/80 via-black/60 to-black/20"></div>
+    </div>
+  </div>
+</Layout>

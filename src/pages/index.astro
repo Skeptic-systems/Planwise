@@ -1,0 +1,9 @@
+---
+import LandingPage from '../components/Landingpage/landingpage';
+import Layout from '../layouts/Layout.astro';
+import "../../src/components/styles/global.css";
+---
+
+<Layout title="Planwise - Home">
+	<LandingPage client:load />
+</Layout>

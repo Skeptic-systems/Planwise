@@ -1,0 +1,41 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { ScheduleBoard } from "../../components/Scheduler/Core/ScheduleBoard";
+import UnloadWarning from "../../components/Hooks/UnloadWarning";
+import { auth } from "@/auth/auth";
+import { db } from "@/lib/db";
+
+export const prerender = false;
+const bSession = await auth.api.getSession({ headers: Astro.request.headers });
+if (!bSession) {
+  return Astro.redirect('/login');
+}
+const session: any = { user: { id: bSession.user.id, email: bSession.user.email } };
+const { id } = Astro.params;
+if (!id) {
+  return Astro.redirect('/dashboard');
+}
+const [planRows] = await db.query("SELECT * FROM plans WHERE id = ? LIMIT 1", [id]);
+const plan = Array.isArray(planRows) ? (planRows as any[])[0] : null;
+
+if (!plan) {
+  return Astro.redirect('/dashboard');
+}
+if (plan.user_id !== session.user.id) {
+  const [memberRows] = await db.query(
+    "SELECT 1 FROM plan_members WHERE plan_id = ? AND user_id = ? LIMIT 1",
+    [id, session.user.id]
+  );
+  const isMember = Array.isArray(memberRows) && (memberRows as any[]).length > 0;
+  if (!isMember) {
+    return Astro.redirect('/dashboard');
+  }
+}
+---
+
+<Layout title="Planwise - Editor">
+  <main class="container mx-auto p-4 bg-black">
+    <UnloadWarning client:load />
+    <ScheduleBoard client:load session={session} plan={plan} />
+  </main>
+</Layout>

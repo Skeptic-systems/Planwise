@@ -1,0 +1,54 @@
+---
+import "../components/styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+  keywords?: string;
+}
+
+const {
+  title = "Planwise - Your Planning Software",
+  description = "Planwise helps you organize and manage your tasks efficiently. Create, track, and collaborate on your plans with ease.",
+  keywords = "planning, task management, productivity, collaboration, organization",
+} = Astro.props;
+
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="keywords" content={keywords} />
+    <meta name="theme-color" content="#000000" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/whiteplanwise.svg" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Meta -->
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+  </head>
+  <body class="dark bg-black text-gray-200">
+    <slot />
+  </body>
+</html>
+
+<style>
+  html,
+  body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+  }
+</style>

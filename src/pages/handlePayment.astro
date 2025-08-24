@@ -1,0 +1,253 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { CreditCard, Lock, CheckCircle2, Loader2 } from 'lucide-react';
+
+const { searchParams } = Astro.url;
+const plan = searchParams.get('plan') || 'pro';
+const billingPeriod = searchParams.get('billing') || 'monthly';
+
+// Handle free plan redirect
+if (plan === 'free') {
+    return Response.redirect(new URL('/register', Astro.url), 302);
+}
+
+const plans = {
+    pro: {
+        name: 'Pro',
+        monthlyPrice: 29,
+        annualPrice: 290, // Save 2 months
+        features: [
+            'Unlimited assignments',
+            'Advanced scheduling tools',
+            'Priority support',
+            'Custom fields',
+            'Team collaboration'
+        ]
+    },
+    enterprise: {
+        name: 'Enterprise',
+        monthlyPrice: 99,
+        annualPrice: 990, // Save 2 months
+        features: [
+            'Everything in Pro',
+            'Custom integrations',
+            'Dedicated support',
+            'Advanced analytics',
+            'SLA guarantees'
+        ]
+    }
+} as const;
+
+const currentPlan = plans[plan as keyof typeof plans];
+const price = billingPeriod === 'annual' ? currentPlan.annualPrice : currentPlan.monthlyPrice;
+const monthlyEquivalent = billingPeriod === 'annual' ? (currentPlan.annualPrice / 12).toFixed(2) : currentPlan.monthlyPrice;
+const savings = billingPeriod === 'annual' ? (currentPlan.monthlyPrice * 12 - currentPlan.annualPrice) : 0;
+---
+
+<Layout title={`Subscribe to ${currentPlan.name} - Planwise`}>
+    <div class="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
+        <div class="container mx-auto px-4 py-12">
+            <div class="max-w-4xl mx-auto">
+                <!-- Header -->
+                <div class="text-center mb-12">
+                    <h1 class="text-4xl font-bold mb-4">Complete Your Subscription</h1>
+                    <p class="text-gray-400">You're just a few steps away from accessing {currentPlan.name}</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Order Summary -->
+                    <div class="bg-gray-800 rounded-lg p-6">
+                        <h2 class="text-xl font-semibold mb-4">Order Summary</h2>
+                        <div class="space-y-4">
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Plan</span>
+                                <span class="font-medium">{currentPlan.name}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Billing Period</span>
+                                <span class="font-medium capitalize">{billingPeriod}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Amount</span>
+                                <span class="font-medium">
+                                    ${price} {billingPeriod === 'annual' ? '/year' : '/month'}
+                                    {billingPeriod === 'annual' && (
+                                        <span class="text-sm text-gray-400 ml-1">(${monthlyEquivalent}/mo)</span>
+                                    )}
+                                </span>
+                            </div>
+                            {billingPeriod === 'annual' && savings > 0 && (
+                                <div class="flex justify-between text-green-400">
+                                    <span>Annual Savings</span>
+                                    <span>${savings}</span>
+                                </div>
+                            )}
+                            <div class="border-t border-gray-700 pt-4">
+                                <div class="flex justify-between">
+                                    <span class="font-semibold">Total</span>
+                                    <span class="font-semibold">
+                                        ${price} {billingPeriod === 'annual' ? '/year' : '/month'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <h3 class="font-medium mb-2">Included Features:</h3>
+                            <ul class="space-y-2">
+                                {currentPlan.features.map((feature: string) => (
+                                    <li class="flex items-center text-gray-300">
+                                        <CheckCircle2 client:load className="w-5 h-5 text-green-500 mr-2" />
+                                        {feature}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Payment Form -->
+                    <div class="bg-gray-800 rounded-lg p-6">
+                        <h2 class="text-xl font-semibold mb-4">Payment Details</h2>
+                        <form id="payment-form" class="space-y-6">
+                            <!-- Payment Method Selection -->
+                            <div class="space-y-4">
+                                <label class="block text-sm font-medium text-gray-300">
+                                    Payment Method
+                                </label>
+                                <div class="flex space-x-4">
+                                    <button
+                                        type="button"
+                                        class="flex items-center px-4 py-2 rounded-lg border border-blue-500 bg-blue-500/10"
+                                        data-payment-method="card"
+                                    >
+                                        <CreditCard client:load className="w-5 h-5 mr-2" />
+                                        Credit Card
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="flex items-center px-4 py-2 rounded-lg border border-gray-700"
+                                        data-payment-method="paypal"
+                                    >
+                                        PayPal
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Card Details -->
+                            <div id="card-details" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-1">
+                                        Card Number
+                                    </label>
+                                    <input
+                                        type="text"
+                                        class="w-full px-4 py-2 bg-gray-700 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                        placeholder="1234 5678 9012 3456"
+                                        required
+                                    />
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-300 mb-1">
+                                            Expiry Date
+                                        </label>
+                                        <input
+                                            type="text"
+                                            class="w-full px-4 py-2 bg-gray-700 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                            placeholder="MM/YY"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-300 mb-1">
+                                            CVC
+                                        </label>
+                                        <input
+                                            type="text"
+                                            class="w-full px-4 py-2 bg-gray-700 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                            placeholder="123"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-1">
+                                        Cardholder Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        class="w-full px-4 py-2 bg-gray-700 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                        placeholder="John Doe"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <!-- Security Notice -->
+                            <div class="flex items-center text-sm text-gray-400">
+                                <Lock client:load className="w-4 h-4 mr-2" />
+                                Your payment information is secure and encrypted
+                            </div>
+
+                            <!-- Submit Button -->
+                            <button
+                                type="submit"
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg flex items-center justify-center transition-colors"
+                            >
+                                Subscribe to {currentPlan.name}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</Layout>
+
+<script>
+    // Handle payment method selection
+    const paymentMethodButtons = document.querySelectorAll('[data-payment-method]');
+    const cardDetails = document.getElementById('card-details');
+
+    paymentMethodButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Update button styles
+            paymentMethodButtons.forEach(btn => {
+                btn.classList.remove('border-blue-500', 'bg-blue-500/10');
+                btn.classList.add('border-gray-700');
+            });
+            button.classList.remove('border-gray-700');
+            button.classList.add('border-blue-500', 'bg-blue-500/10');
+
+            // Show/hide card details
+            if (button.getAttribute('data-payment-method') === 'card') {
+                cardDetails?.classList.remove('hidden');
+            } else {
+                cardDetails?.classList.add('hidden');
+            }
+        });
+    });
+
+    // Handle form submission
+    const form = document.getElementById('payment-form');
+    form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+        if (submitButton) {
+            const originalText = submitButton.innerHTML;
+            submitButton.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing...
+            `;
+            submitButton.disabled = true;
+
+            // Here you would integrate with your payment processor
+            // For now, we'll simulate a successful payment
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 2000);
+        }
+    });
+</script> 

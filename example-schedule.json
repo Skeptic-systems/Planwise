@@ -1,0 +1,79 @@
+{
+  "id": "7e29784c-b6d2-4d13-bcd9-f1ef86ad9ce2",
+  "name": "Bar",
+  "fields": [
+    "Bar Counter",
+    "Floor Service",
+    "Kitchen",
+    "Door Security",
+    "VIP Area"
+  ],
+  "assignments": [
+    {
+      "id": "a1b2c3d4-1",
+      "name": "John Smith",
+      "field": "Bar Counter",
+      "startTime": "18:00",
+      "endTime": "23:00",
+      "color": "bg-green-200",
+      "email": "john.smith@example.com"
+    },
+    {
+      "id": "a1b2c3d4-2",
+      "name": "Sarah Johnson",
+      "field": "Bar Counter",
+      "startTime": "23:00",
+      "endTime": "04:00",
+      "color": "bg-blue-200",
+      "email": "sarah.j@example.com"
+    },
+    {
+      "id": "a1b2c3d4-3",
+      "name": "Mike Wilson",
+      "field": "Floor Service",
+      "startTime": "19:00",
+      "endTime": "01:00",
+      "color": "bg-purple-200",
+      "email": "mike.w@example.com"
+    },
+    {
+      "id": "a1b2c3d4-4",
+      "name": "Emily Davis",
+      "field": "Floor Service",
+      "startTime": "20:00",
+      "endTime": "02:00",
+      "color": "bg-yellow-200",
+      "email": "emily.d@example.com"
+    },
+    {
+      "id": "a1b2c3d4-5",
+      "name": "Carlos Rodriguez",
+      "field": "Kitchen",
+      "startTime": "17:00",
+      "endTime": "01:00",
+      "color": "bg-pink-200",
+      "email": "carlos.r@example.com"
+    },
+    {
+      "id": "a1b2c3d4-6",
+      "name": "James Brown",
+      "field": "Door Security",
+      "startTime": "21:00",
+      "endTime": "04:00",
+      "color": "bg-blue-200",
+      "email": "james.b@example.com"
+    },
+    {
+      "id": "a1b2c3d4-7",
+      "name": "Lisa Chen",
+      "field": "VIP Area",
+      "startTime": "20:00",
+      "endTime": "03:00",
+      "color": "bg-green-200",
+      "email": "lisa.c@example.com"
+    }
+  ],
+  "type": "personal",
+  "tabId": "7e29784c-b6d2-4d13-bcd9-f1ef86ad9ce2",
+  "planId": "b62eede6-d2de-49ea-bd76-4b013b8a8ef0"
+} 

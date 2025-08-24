@@ -1,0 +1,14 @@
+---
+import Layout from "../../layouts/Layout.astro";
+const token = Astro.params.token;
+---
+
+<Layout title="Reset Password - Planwise">
+  <main class="min-h-screen flex items-center justify-center p-4">
+    <form action={`/api/auth/do-reset-password/${encodeURIComponent(token || "")}`} method="POST" class="w-full max-w-sm space-y-4">
+      <h1 class="text-2xl font-semibold">Set a new password</h1>
+      <input type="password" name="password" placeholder="New password" class="w-full rounded border p-2" required />
+      <button type="submit" class="w-full rounded bg-blue-600 text-white py-2">Save</button>
+    </form>
+  </main>
+</Layout>

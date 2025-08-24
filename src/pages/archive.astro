@@ -1,0 +1,27 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import AuthLayout from '@/layouts/AuthLayout';
+import Sidebar from '@/components/dashboard/Sidebar';
+import { Toaster } from '@/components/ui/feedback/toaster';
+import { Archive as ArchiveList } from '@/components/dashboard/Archive';
+import { auth } from "@/auth/auth";
+
+const bSession = await auth.api.getSession({ headers: Astro.request.headers });
+if (!bSession) {
+  return Astro.redirect('/login');
+}
+const session: any = { user: { id: bSession.user.id, email: bSession.user.email } };
+---
+
+<Layout title="Archive - Planwise">
+  <AuthLayout client:load>
+    <div class="flex h-screen bg-background">
+      <Sidebar session={session} client:load />
+      <main class="flex-1 p-6 overflow-auto">
+        <h1 class="text-3xl font-bold text-foreground mb-6">Archive</h1>
+        <ArchiveList session={session} client:load />
+        <Toaster client:load />
+      </main>
+    </div>
+  </AuthLayout>
+</Layout>

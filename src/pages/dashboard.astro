@@ -1,0 +1,21 @@
+---
+import DashboardComponent from "../components/dashboard/Dashboard";
+import Layout from "../layouts/Layout.astro";
+import AuthLayout from "../layouts/AuthLayout";
+import { auth } from "@/auth/auth";
+
+export const prerender = false;
+
+const bSession = await auth.api.getSession({ headers: Astro.request.headers });
+if (!bSession) {
+  return Astro.redirect('/login');
+}
+
+const session: any = { user: { id: bSession.user.id, email: bSession.user.email } };
+---
+
+<Layout title="Planwise - Dashboard">
+  <AuthLayout client:load>
+    <DashboardComponent client:load session={session} />
+  </AuthLayout>
+</Layout>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="F9F9F9" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 159.94 189.01">
+  <defs>
+    <style>
+      .cls-1 {
+        font-family: Quicksand-Light, Quicksand;
+        font-size: 18.29px;
+        font-variation-settings: 'wght' 300;
+        font-weight: 300;
+      }
+
+      .cls-1, .cls-2 {
+        fill: #f9f9f9;
+      }
+    </style>
+  </defs>
+  <polygon class="cls-2" points="0 .26 26.97 .26 26.97 134.28 67.42 134.28 67.42 108.66 93.3 108.66 93.3 160.44 0 160.44 0 .26"/>
+  <polygon class="cls-2" points="67.69 .26 159.64 .26 159.64 52.3 132.67 52.3 132.67 26.28 93.3 26.28 93.3 52.3 67.69 52.3 67.69 .26"/>
+  <text class="cls-1" transform="translate(0 184.97)"><tspan x="0" y="0">undefined studios .</tspan></text>
+  <path class="cls-2" d="m132.54,160.37h27.37l-.67-57.12c0-19.4-14.06-35.24-34.45-35.04h-51.44c-4.06,0-7.35,3.29-7.35,7.35h0c-.18,5.32,2.64,10.48,8.72,14.18,4.2,2.56,9.1,3.75,14.02,3.75h43.39s.4,66.88.4,66.88Z"/>
+</svg>

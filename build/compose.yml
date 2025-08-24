@@ -1,0 +1,64 @@
+services:
+  db:
+    image: mariadb:latest
+    container_name: planwise-db
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DB_NAME:-planwise}
+      MARIADB_USER: ${DB_USER:-planwise}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-planwise}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+    volumes:
+      - ./db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MARIADB_ROOT_PASSWORD} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - planwise-internal
+      - planwise-external
+    ports:
+      - 3306:3306
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: planwise-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+    networks:
+      - planwise-internal
+      - planwise-external
+
+#  planwise:
+#    build:
+#      context: .
+#      dockerfile: ../dockerfile
+#    container_name: planwise-app
+#    restart: unless-stopped
+#    environment:
+#      DB_HOST: db
+#      DB_PORT: 3306
+#      DB_NAME: ${DB_NAME:-planwise}
+#      DB_USER: ${DB_USER:-planwise}
+#      DB_PASSWORD: ${DB_PASSWORD:-planwise}
+#    depends_on:
+#      - db
+#    ports:
+#      - "80:4321"
+#    networks:
+#      - planwise-internal
+#      - planwise-external
+
+networks:
+  planwise-internal:
+    internal: true
+  planwise-external:
+    external: true
