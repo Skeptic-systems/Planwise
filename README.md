@@ -71,10 +71,10 @@ http://localhost:4321
 ![Main](./public/mock1.png)
 
 🧩 Login
-![Mod Details](./public/mock1.png)
+![Mod Details](./public/mock2.png)
 
 🧱 Dashboard
-![Conflicts](./public/mock1.png)
+![Conflicts](./public/mock3.png)
 
 ## 🐋 Docker Compose 
 ```
