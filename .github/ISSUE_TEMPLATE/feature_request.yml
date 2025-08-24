@@ -1,0 +1,25 @@
+name: "Feature request 🚀"
+description: "Suggest an idea"
+title: "[Feature]: "
+labels: ["enhancement"]
+assignees: []
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: "Summary"
+      description: "Brief explanation of the feature."
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: "Basic example"
+      description: "Include a basic example or links."
+  - type: textarea
+    id: motivation
+    attributes:
+      label: "Motivation"
+      description: "Why are we doing this? Which use cases? Expected outcome?"
+    validations:
+      required: true
