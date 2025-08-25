@@ -161,9 +161,10 @@ useEffect(() => {
                         ?.map(field => field.name) || [],
                     assignments: transformedAssignments
                         ?.filter(assignment => {
-                            const field = fieldsData?.find(f => f.name === assignment.field);
-                            return field?.plan_tab_id === tab.id;
-                        }) || [],
+                        const field = fieldsData?.find(f => f.name === assignment.field && f.plan_tab_id === tab.id);
+                        return !!field;
+                    }) || [],
+
                     type: tab.type,
                     tabId: tab.id,
                     planId: plan.id
@@ -188,6 +189,11 @@ useEffect(() => {
     }, [plan.id]);
 
     const activePlan = plans.find((p) => p.id === activePlanId);
+
+    useEffect(() => {
+        const ap = plans.find(p => p.id === activePlanId);
+        setFields(ap?.fields ?? []);
+    }, [activePlanId, plans]);
 
     const handleSave = async () => {
         if (!activePlan) return;
@@ -251,41 +257,66 @@ useEffect(() => {
     };
 
     // Add a new tab
-    const addPlan = async (planName: string) => {
-        const measure = measurePerformance('add_plan');
-        try {
-            const { data, error } = await supabase
-                .from('plan_tabs')
-                .insert({
-                    plan_id: plan.id,
-                    name: planName,
-                    type: 'personal',
-                    position: plans.length // Add at the end
-                })
-                .select()
-                .single();
-
-            if (error) throw error;
-
-            if (data) {
-                const newPlan: SchedulerPlan = {
-                    id: data.id,
-                    name: planName,
-                    fields: ["Field 1"],
-                    assignments: [],
-                    type: "personal",
-                    tabId: data.id,
-                    planId: plan.id
-                };
-                setPlans(prev => [...prev, newPlan]);
-                setActivePlanId(data.id);
-            }
-        } catch (error) {
-            handleError(error as Error, 'plan_add');
-        } finally {
-            measure();
-        }
+// ANKER: ersetzt die bestehende addPlan-Funktion komplett
+const addPlan = async (planName: string) => {
+  const measure = measurePerformance('add_plan');
+  try {
+    // generate ids for MariaDB
+    const genId = () => {
+      if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+      const s4 = () => Math.floor((1 + Math.random()) * 0x10000).toString(16).slice(-4);
+      return `${s4()}${s4()}-${s4()}-${s4()}-${s4()}-${s4()}${s4()}${s4()}`;
     };
+    const newTabId = genId();
+
+    // create tab
+    const { data: tabRow, error: tabErr } = await supabase
+      .from('plan_tabs')
+      .insert({
+        id: newTabId,
+        plan_id: plan.id,
+        name: planName,
+        type: 'personal',
+        position: plans.length
+      })
+      .select()
+      .single();
+    if (tabErr) throw tabErr;
+
+    const tabId = tabRow?.id ?? newTabId;
+
+    // create default field in DB so assignments can reference it
+    const defaultFieldId = genId();
+    const { error: fieldErr } = await supabase
+      .from('fields')
+      .insert({
+        id: defaultFieldId,
+        plan_id: plan.id,
+        plan_tab_id: tabId,
+        name: 'Field 1'
+      });
+    if (fieldErr) throw fieldErr;
+
+    // update local state
+    const newPlan: SchedulerPlan = {
+      id: tabId,
+      name: planName,
+      fields: ['Field 1'],
+      assignments: [],
+      type: 'personal',
+      tabId,
+      planId: plan.id
+    };
+    setPlans(prev => [...prev, newPlan]);
+    setActivePlanId(tabId);
+    setFields(newPlan.fields);
+  } catch (error) {
+    handleError(error as Error, 'plan_add');
+  } finally {
+    measure();
+  }
+};
+
 
     // Delete a tab
     const deletePlan = async (planId: string) => {

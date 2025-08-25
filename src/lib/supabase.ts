@@ -81,11 +81,10 @@ class Query<T = any> {
   constructor(private _table: string) {}
 
   // ---- fluent API (mimic supabase-js) ----
-  select(cols: string | string[] = "*") {
-    this._op = "select";
-    this._columns = Array.isArray(cols) ? cols.join(",") : cols;
-    return this;
-  }
+select(cols: string | string[] = "*") {
+  this._columns = Array.isArray(cols) ? cols.join(",") : cols;
+  return this;
+}
   insert(values: any[] | Record<string, any>) {
     this._op = "insert";
     this._values = Array.isArray(values) ? values : [values];
