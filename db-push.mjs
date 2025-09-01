@@ -58,7 +58,6 @@ const CREATE = {
     updatedAt datetime DEFAULT current_timestamp(),
     PRIMARY KEY (id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
-
   auth_users: `CREATE TABLE IF NOT EXISTS \`auth_users\` (
     id char(36) NOT NULL,
     email varchar(255) DEFAULT NULL,
@@ -151,6 +150,7 @@ const CREATE = {
     PRIMARY KEY (id), KEY idx_ae_user_id (user_id), KEY idx_ae_plan_id (plan_id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 };
+
 const FK = [
   { t: "account", n: "account_ibfk_1", sql: "ALTER TABLE `account` ADD CONSTRAINT `account_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `user` (`id`) ON DELETE CASCADE" },
   { t: "session", n: "session_ibfk_1", sql: "ALTER TABLE `session` ADD CONSTRAINT `session_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `user` (`id`) ON DELETE CASCADE" },
@@ -171,7 +171,8 @@ const FK = [
 ];
 
 async function connNoDB(c, fn) { const db = await mysql.createConnection(c); try { return await fn(db); } finally { await db.end(); } }
-async function connDB(c, fn) { const db = await mysql.createConnection(c); try { return await fn(db); } finally { await db.end(); } }
+async function connDB(c, fn)  { const db = await mysql.createConnection(c); try { return await fn(db); } finally { await db.end(); } }
+
 async function hasFK(db, table, name) {
   const [r] = await db.query(
     "SELECT 1 FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = ? AND CONSTRAINT_NAME = ? LIMIT 1",
@@ -191,9 +192,8 @@ async function normalizeEngine(db, name) {
   try {
     await db.query(`ALTER TABLE \`${name}\` ENGINE=InnoDB`);
   } catch (e) {
-    const msg = (e && e.sqlMessage) || e.message || "";
+    const msg = e?.sqlMessage || e?.message || "";
     if (msg.includes("Tablespace is missing") || e.code === "ER_ERROR_ON_RENAME") {
-      console.warn(`[db:push] ${name}: tablespace broken → drop+recreate`);
       await db.query(`DROP TABLE IF EXISTS \`${name}\``);
       await ensureTable(db, name);
     } else {
@@ -206,9 +206,8 @@ async function addFKWithRepair(db, fk) {
   try {
     await db.query(fk.sql);
   } catch (e) {
-    const msg = (e && e.sqlMessage) || e.message || "";
+    const msg = e?.sqlMessage || e?.message || "";
     if (msg.includes("Tablespace is missing") || e.code === "ER_ERROR_ON_RENAME" || e.errno === 150) {
-      console.warn(`[db:push] FK ${fk.n}: repairing tables`);
       const child = fk.t;
       const m = fk.sql.match(/REFERENCES\s+`([^`]+)`/i);
       const parent = m ? m[1] : null;
@@ -223,26 +222,11 @@ async function addFKWithRepair(db, fk) {
 
 async function run() {
   const c = cfg();
-  console.log(`[db:push] using ${c.user}@${c.host}:${c.port} db=${c.database}`);
-  await connNoDB({ host: c.host, port: c.port, user: c.user, password: c.password }, async (db) => {
-    await db.query("SELECT 1");
-  });
-
-
-  await connNoDB({ host: c.host, port: c.port, user: c.user, password: c.password }, async (db) => {
-    await db.query(`CREATE DATABASE IF NOT EXISTS \`${c.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
-  });
+  await connNoDB({ host: c.host, port: c.port, user: c.user, password: c.password }, async (db) => { await db.query("SELECT 1"); });
+  await connNoDB({ host: c.host, port: c.port, user: c.user, password: c.password }, async (db) => { await db.query(`CREATE DATABASE IF NOT EXISTS \`${c.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`); });
   await connDB({ host: c.host, port: c.port, user: c.user, password: c.password, database: c.database, multipleStatements: true }, async (db) => {
     await db.query("SET SESSION foreign_key_checks=0");
-    const order = [
-      "user", "auth_users",
-      "plans", "plan_tabs",
-      "fields", "assignments",
-      "plan_members", "plan_archive",
-      "analytics_events", "profiles",
-      "account", "session", "verification",
-    ];
-
+    const order = ["user","auth_users","plans","plan_tabs","fields","assignments","plan_members","plan_archive","analytics_events","profiles","account","session","verification"];
     for (const t of order) await ensureTable(db, t);
     for (const t of order) await normalizeEngine(db, t);
     for (const fk of FK) await addFKWithRepair(db, fk);
@@ -250,10 +234,8 @@ async function run() {
       await db.query("DROP TRIGGER IF EXISTS `trg_profiles_set_updated_at`");
       await db.query("CREATE TRIGGER `trg_profiles_set_updated_at` BEFORE UPDATE ON `profiles` FOR EACH ROW SET NEW.updated_at = CURRENT_TIMESTAMP");
     }
-
     await db.query("SET SESSION foreign_key_checks=1");
   });
-
   console.log("[db:push] schema ensured successfully");
 }
 
