@@ -6,6 +6,8 @@ export interface EmployeeAssignment {
     endTime: string;
     color: string;
     email?: string;
+    fieldId?: string;
+    tabId?: string;
 }
 
 export interface SchedulerPlan {

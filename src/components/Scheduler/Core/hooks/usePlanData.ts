@@ -18,7 +18,6 @@ export function usePlanData({ planId }: UsePlanDataProps) {
         const fetchPlanData = async () => {
             try {
                 setIsLoading(true);
-                // Fetch tabs for this plan
                 const { data: tabsData, error: tabsError } = await supabase
                     .from('plan_tabs')
                     .select('*')
@@ -26,16 +25,12 @@ export function usePlanData({ planId }: UsePlanDataProps) {
                     .order('position');
 
                 if (tabsError) throw tabsError;
-
-                // Fetch fields for all tabs
                 const { data: fieldsData, error: fieldsError } = await supabase
                     .from('fields')
                     .select('*')
                     .eq('plan_id', planId);
 
                 if (fieldsError) throw fieldsError;
-
-                // Fetch assignments with field information
                 const { data: assignmentsData, error: assignmentsError } = await supabase
                     .from('assignments')
                     .select(`
@@ -49,26 +44,24 @@ export function usePlanData({ planId }: UsePlanDataProps) {
 
                 if (assignmentsError) throw assignmentsError;
 
-                // Transform assignments data to include field name
-                const transformedAssignments = assignmentsData?.map(assignment => ({
-                    id: assignment.id,
-                    name: assignment.name,
-                    field: assignment.fields.name,
-                    startTime: new Date(assignment.start_time).toLocaleTimeString('en-US', SCHEDULER_CONSTANTS.TIME_FORMAT.HOURS),
-                    endTime: new Date(assignment.end_time).toLocaleTimeString('en-US', SCHEDULER_CONSTANTS.TIME_FORMAT.HOURS),
-                    color: assignment.color,
-                    email: assignment.email
-                }));
+        const transformedAssignments: EmployeeAssignment[] = (assignmentsData ?? []).map((assignment: any) => ({
+            id: assignment.id,
+            name: assignment.name,
+            field: assignment?.fields?.name ?? '',
+            fieldId: assignment.field_id,
+            tabId: assignment?.fields?.plan_tab_id ?? null, 
+            startTime: new Date(assignment.start_time).toLocaleTimeString('en-US', SCHEDULER_CONSTANTS.TIME_FORMAT.HOURS),
+            endTime: new Date(assignment.end_time).toLocaleTimeString('en-US', SCHEDULER_CONSTANTS.TIME_FORMAT.HOURS),
+            color: assignment.color,
+            email: assignment.email,
+        }));
 
-                // Organize data into plans structure
-                const plansData = tabsData.map(tab => ({
-                    id: tab.id,
-                    title: tab.name,
-                    fields: fieldsData.filter(field => field.plan_tab_id === tab.id),
-                    assignments: transformedAssignments.filter(assignment => 
-                        fieldsData.find(field => field.name === assignment.field)?.plan_tab_id === tab.id
-                    )
-                }));
+        const plansData = tabsData.map((tab: any) => ({
+            id: tab.id,
+            title: tab.name,
+            fields: fieldsData.filter((field: any) => field.plan_tab_id === tab.id),
+            assignments: transformedAssignments.filter(a => a.tabId === tab.id),
+        }));
 
                 setPlans(plansData);
                 setFields(fieldsData.map(field => field.name));

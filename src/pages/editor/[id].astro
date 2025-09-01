@@ -35,7 +35,6 @@ if (plan.user_id !== session.user.id) {
 
 <Layout title="Planwise - Editor">
   <main class="container mx-auto p-4 bg-black">
-    <UnloadWarning client:load />
     <ScheduleBoard client:load session={session} plan={plan} />
   </main>
 </Layout>

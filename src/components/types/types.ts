@@ -1,4 +1,3 @@
-// src/components/types/types.ts
 export interface EmployeeAssignment {
     id: string;
     name: string;
@@ -8,6 +7,8 @@ export interface EmployeeAssignment {
     endTime: string;
     color: string;
     planId: string;
+    fieldId?: string;
+    tabId?: string;
 }
 
 export interface TimeSlot {

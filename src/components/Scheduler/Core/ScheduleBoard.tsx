@@ -72,25 +72,27 @@ export function ScheduleBoard({ plan, session }: ScheduleBoardProps) {
     const [selectedAssignment, setSelectedAssignment] = useState<EmployeeAssignment | null>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
     const refreshActivePlanAssignments = useCallback(async () => {
-  const { data: assignmentsData, error: assignmentsError } = await supabase
-    .from('assignments')
-    .select(`*, fields:field_id ( name, plan_tab_id )`)
-    .eq('plan_id', plan.id);
+        const { data: assignmentsData, error: assignmentsError } = await supabase
+        .from('assignments')
+        .select(`id, name, start_time, end_time, color, email, field_id, fields:field_id ( name, plan_tab_id )`)
+        .eq('plan_id', plan.id);
 
-  if (assignmentsError) throw assignmentsError;
+    if (assignmentsError) throw assignmentsError;
 
-  const updated = (assignmentsData ?? [])
-    .filter(a => a.fields?.plan_tab_id === activePlanId)
-    .map(a => ({
-      id: a.id,
-      name: a.name,
-      field: a.fields.name,
-      startTime: toLocalHHmm(a.start_time),
-      endTime: toLocalHHmm(a.end_time),
-      color: a.color,
-      email: a.email,
-      planId: plan.id,
-    }));
+    const updated: EmployeeAssignment[] = (assignmentsData ?? [])
+        .filter((a: any) => a?.fields?.plan_tab_id === activePlanId)
+        .map((a: any) => ({
+            id: a.id,
+            name: a.name,
+            field: a?.fields?.name ?? '',
+            fieldId: a.field_id,
+            tabId: a?.fields?.plan_tab_id ?? null,
+            startTime: toLocalHHmm(a.start_time),
+           endTime: toLocalHHmm(a.end_time),
+           color: a.color,
+           email: a.email,
+           planId: plan.id,
+     }));
 
   setPlans(prev => prev.map(p => p.id === activePlanId ? { ...p, assignments: updated } : p));
 }, [activePlanId, plan.id, setPlans]);
@@ -137,38 +139,35 @@ useEffect(() => {
                     .eq('plan_id', plan.id);
 
                 if (assignmentsError) throw assignmentsError;
-                const transformedAssignments = assignmentsData?.map(assignment => {
+                const transformedAssignments = (assignmentsData ?? []).map((assignment: any) => {
                     const startTime = toLocalHHmm(assignment.start_time);
                     const endTime   = toLocalHHmm(assignment.end_time);
 
-                    return {
-                        id: assignment.id,
-                        name: assignment.name,
-                        field: assignment.fields.name,
-                        startTime,
-                        endTime,
-                        color: assignment.color,
-                        email: assignment.email,
-                        planId: plan.id
-                    };
-                });
+                return {
+                    id: assignment.id,
+                    name: assignment.name,
+                    field: assignment?.fields?.name ?? '',
+                    fieldId: assignment.field_id,
+                    tabId: assignment?.fields?.plan_tab_id ?? null,
+                    startTime,
+                    endTime,
+                    color: assignment.color,
+                    email: assignment.email,
+                    planId: plan.id,
+                } as EmployeeAssignment;
+            });
 
-                const organizedPlans = tabsData?.map(tab => ({
+            const organizedPlans = tabsData?.map((tab: any) => ({
                     id: tab.id,
                     name: tab.name,
-                    fields: fieldsData
-                        ?.filter(field => field.plan_tab_id === tab.id)
-                        ?.map(field => field.name) || [],
-                    assignments: transformedAssignments
-                        ?.filter(assignment => {
-                        const field = fieldsData?.find(f => f.name === assignment.field && f.plan_tab_id === tab.id);
-                        return !!field;
-                    }) || [],
-
+                    fields: (fieldsData ?? [])
+                    .filter((f: any) => f.plan_tab_id === tab.id)
+                    .map((f: any) => f.name),
+                    assignments: (transformedAssignments ?? []).filter(a => a.tabId === tab.id),
                     type: tab.type,
                     tabId: tab.id,
-                    planId: plan.id
-                })) || [];
+                    planId: plan.id,
+                })) ?? [];
 
                 setPlans(organizedPlans);
                 if (organizedPlans.length > 0) {
