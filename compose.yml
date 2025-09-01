@@ -1,13 +1,13 @@
 services:
   db:
     image: mariadb:latest
-    container_name: planwise-db
+    container_name: planwise_db
     restart: unless-stopped
     environment:
-      MARIADB_DATABASE: ${DB_NAME:-planwise}
-      MARIADB_USER: ${DB_USER:-planwise}
-      MARIADB_PASSWORD: ${DB_PASSWORD:-planwise}
-      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+      MARIADB_DATABASE: planwise
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
     volumes:
       - ./db_data:/var/lib/mysql
     healthcheck:
@@ -24,7 +24,7 @@ services:
 
   phpmyadmin:
     image: phpmyadmin:latest
-    container_name: planwise-phpmyadmin
+    container_name: planwise_phpmyadmin
     restart: unless-stopped
     environment:
       PMA_HOST: db

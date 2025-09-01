@@ -6,8 +6,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro",
-    "check-unused": "ts-unused-exports tsconfig.json --findCompletelyUnusedFiles"
+    "db:push": "node db-push.mjs",
+    "db:drop": "node db-drop.mjs"
   },
   "dependencies": {
     "@astrojs/react": "^4.2.1",

@@ -8,13 +8,13 @@
 [⬇️ Download (Release)](./releases/latest) · [🐛 Report Bug](./issues/new?labels=bug) · [💡Suggest a feature](./issues/new?labels=enhancement)
 
 ---
-## 🚧 Planwise is still in development
+### 🚧 Planwise is still in development
 
 Planwise works, but it’s early. Expect rough edges. The database migration from **Supabase** to **MariaDB** is **ongoing**, so features touching data may be unstable. If something breaks, please open an issue.
 
 ---
 
-## Status
+### 📊 Status
 
 - Core features exist: profiles & loadouts, website (Astro).
 - Actively refactoring data access and schemas as part of the DB move.
@@ -22,7 +22,7 @@ Planwise works, but it’s early. Expect rough edges. The database migration fro
 
 ---
 
-## Supabase → MariaDB migration
+### ✈️ Supabase → MariaDB migration
 
 I am replacing Supabase with MariaDB for local and self-hosted setups. The Compose stack ships a MariaDB instance and optional phpMyAdmin. Migration tasks still in progress:
 
@@ -41,19 +41,25 @@ I am replacing Supabase with MariaDB for local and self-hosted setups. The Compo
 
 ## 🚀 Quick start
 
-**Requirements:** Node ≥ 18 · Docker · Prisma · Bun
+**Requirements:** Nodejs
 
 ```bash
+# Clone
+git clone https://github.com/Skeptic-systems/Planwise.git
+cd Planwise
+# Install modules
 npm install
+# DB Docker Compose is located in build
+cd build
 cp .env.example .env
-npx @better-auth/cli@latest generate --config src/auth/auth.ts
-npx @better-auth/cli@latest migrate  --config src/auth/auth.ts
 docker compose up -d
-#pnpm -C apps/api prisma db push
+cd ..
+# Initialize DB
+npm run db:push
 npm run dev
 ```
 
-.env (Example)
+.env (Example) -> Must be same values like ./build/.env
 ```env
 DB_HOST=127.0.0.1
 DB_PORT=3306
@@ -78,10 +84,10 @@ docs/
 
 ## 🛠️ Useful commands
 ```bash
-pnpm run dev
-pnpm run lint
-pnpm run test
-pnpm -C apps/desktop tauri build
+npm run dev
+npm run build
+npm run db:push
+npm run db:drop
 http://localhost:4321
 ```
 
@@ -107,10 +113,10 @@ services:
     container_name: planwise-db
     restart: unless-stopped
     environment:
-      MARIADB_DATABASE: ${DB_NAME:-planwise}
-      MARIADB_USER: ${DB_USER:-planwise}
-      MARIADB_PASSWORD: ${DB_PASSWORD:-planwise}
-      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
     volumes:
       - ./db_data:/var/lib/mysql
     healthcheck:

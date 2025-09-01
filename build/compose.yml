@@ -1,7 +1,7 @@
 services:
   db:
     image: mariadb:latest
-    container_name: planwise-db
+    container_name: planwise_db
     restart: unless-stopped
     environment:
       MARIADB_DATABASE: ${DB_NAME:-planwise}
@@ -24,7 +24,7 @@ services:
 
   phpmyadmin:
     image: phpmyadmin:latest
-    container_name: planwise-phpmyadmin
+    container_name: planwise_phpmyadmin
     restart: unless-stopped
     environment:
       PMA_HOST: db
