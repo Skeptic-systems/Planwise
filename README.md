@@ -51,10 +51,11 @@ cd Planwise
 npm install
 # DB Docker Compose is located in build
 cd build
-cp .env.example .env
+cp example.env .env
 docker compose up -d
 cd ..
 # Initialize DB
+cp example.env .env
 npm run db:push
 npm run dev
 ```
