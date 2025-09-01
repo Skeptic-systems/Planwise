@@ -1,18 +1,17 @@
 # 🌟 Planwise
-> 🧰 Planwise is a shift scheduler
+> 🧰 Planwise is a shift scheduler for festivals
 
 <p align="center">
   <img src="./public/whiteplanwise.svg" alt="Planwise Logo" width="96" height="96">
 </p>
 
-[⬇️ Download (Release)](./releases/latest) · [🐛 Bug melden](./issues/new?labels=bug) · [💡 Feature vorschlagen](./issues/new?labels=enhancement)
+[⬇️ Download (Release)](./releases/latest) · [🐛 Report Bug](./issues/new?labels=bug) · [💡Suggest a feature](./issues/new?labels=enhancement)
 
 ---
 
 ## ✨ Features
 - 🧩 Save profiles & loadouts
 - 🔄 (Optional) Auto-Update & Integrity Checks
-- 💾 Backups & Restore
 - 🖥️ Cross-Platform (Win/macOS/Linux)
 
 ---
@@ -26,14 +25,12 @@ pnpm install
 cp .env.example .env
 npx @better-auth/cli@latest generate --config src/auth/auth.ts
 npx @better-auth/cli@latest migrate  --config src/auth/auth.ts
-docker run --name planwise-db -e POSTGRES_PASSWORD=planwise -e POSTGRES_DB=planwise -p 5432:5432 -d postgres:16
-pnpm -C apps/api prisma db push
-pnpm -C apps/desktop dev
-# (Website/Docs, optional)
-pnpm -C apps/web dev
+docker compose up -d
+#pnpm -C apps/api prisma db push
+pnpm eun dev
 ```
 
-.env (Beispiel)
+.env (Example)
 ```env
 DB_HOST=127.0.0.1
 DB_PORT=3306
@@ -75,6 +72,9 @@ http://localhost:4321
 
 🧱 Dashboard
 ![Conflicts](./public/mock3.png)
+
+📝 Editor
+![Editor](./public/mock3.png)
 
 ## 🐋 Docker Compose 
 ```
@@ -149,8 +149,7 @@ git commit -m "feat: <short description>"
 git push origin feature/<name>
 
 ## 📦 Build & Release
-pnpm -C apps/desktop tauri build
-Signieren/Notarisieren je nach OS in CI hinterlegen.
+pnpm run build
 
 ## 🧾 License & Notice
 GNU GENERAL PUBLIC LICENSE
