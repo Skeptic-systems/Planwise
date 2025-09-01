@@ -74,7 +74,7 @@ http://localhost:4321
 ![Conflicts](./public/mock3.png)
 
 📝 Editor
-![Editor](./public/mock3.png)
+![Editor](./public/mock4.png)
 
 ## 🐋 Docker Compose 
 ```
