@@ -41,7 +41,7 @@ I am replacing Supabase with MariaDB for local and self-hosted setups. The Compo
 
 ## 🚀 Quick start
 
-**Requirements:** Nodejs
+**Requirements:** Nodejs, Docker
 
 ```bash
 # Clone
