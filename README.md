@@ -105,7 +105,7 @@ http://localhost:4321
 📝 Editor
 ![Editor](./public/mock4.png)
 
-## 🐋 Docker Compose 
+## 🐋 Docker Compose (currently not working)
 ```
 services:
   db:
