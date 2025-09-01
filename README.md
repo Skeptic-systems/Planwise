@@ -8,6 +8,29 @@
 [⬇️ Download (Release)](./releases/latest) · [🐛 Report Bug](./issues/new?labels=bug) · [💡Suggest a feature](./issues/new?labels=enhancement)
 
 ---
+## 🚧 Planwise is still in development
+
+**TL;DR:** Planwise works, but it’s early. Expect rough edges. The database migration from **Supabase** to **MariaDB** is **ongoing**, so features touching data may be unstable. If something breaks, please open an issue.
+
+---
+
+## Status
+
+- Core features exist: profiles & loadouts, optional auto-update, desktop app (Tauri + React), website (Astro).
+- We’re actively refactoring data access and schemas as part of the DB move.
+- Breaking changes can happen without notice until the first stable release.
+
+---
+
+## Supabase → MariaDB migration
+
+We are replacing Supabase with MariaDB for local and self-hosted setups. The Compose stack ships a MariaDB instance and optional phpMyAdmin. Migration tasks still in progress:
+
+- Finalize Prisma schema + migrations for all modules
+- Migrate auth/session storage paths
+- Data seeding and import/export docs
+- Hardening & integrity checks against the new DB
+
 
 ## ✨ Features
 - 🧩 Save profiles & loadouts
