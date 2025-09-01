@@ -21,13 +21,13 @@
 **Requirements:** Node ≥ 18 · Docker · Prisma · Bun
 
 ```bash
-pnpm install
+npm install
 cp .env.example .env
 npx @better-auth/cli@latest generate --config src/auth/auth.ts
 npx @better-auth/cli@latest migrate  --config src/auth/auth.ts
 docker compose up -d
 #pnpm -C apps/api prisma db push
-pnpm eun dev
+npm run dev
 ```
 
 .env (Example)
