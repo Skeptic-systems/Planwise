@@ -16,3 +16,20 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+// Define session type for Astro.locals
+declare namespace App {
+  interface Locals {
+    session: {
+      user: {
+        id: string;
+        email: string;
+        name?: string;
+      };
+      session: {
+        id: string;
+        expiresAt: Date;
+      };
+    } | null;
+  }
+}

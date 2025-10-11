@@ -1,6 +1,6 @@
 services:
   db:
-    image: mariadb:latest
+    image: mariadb:11
     container_name: planwise_db
     restart: unless-stopped
     environment:

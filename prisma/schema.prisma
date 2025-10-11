@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model account {
+  id                    String    @id @db.VarChar(36)
+  accountId             String    @db.Text
+  providerId            String    @db.Text
+  userId                String    @db.VarChar(36)
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  idToken               String?   @db.Text
+  accessTokenExpiresAt  DateTime? @db.DateTime(0)
+  refreshTokenExpiresAt DateTime? @db.DateTime(0)
+  scope                 String?   @db.Text
+  password              String?   @db.Text
+  createdAt             DateTime  @db.DateTime(0)
+  updatedAt             DateTime  @db.DateTime(0)
+  user                  user      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "account_ibfk_1")
+
+  @@index([userId], map: "userId")
+}
+
+model analytics_events {
+  id         String      @id @db.Char(36)
+  user_id    String?     @db.Char(36)
+  name       String      @db.VarChar(255)
+  properties String      @db.LongText
+  created_at DateTime?   @default(now()) @db.DateTime(0)
+  plan_id    String?     @db.Char(36)
+  plans      plans?      @relation(fields: [plan_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "fk_ae_plan")
+  auth_users auth_users? @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "fk_ae_user")
+
+  @@index([plan_id], map: "idx_ae_plan_id")
+  @@index([user_id], map: "idx_ae_user_id")
+}
+
+model assignments {
+  id         String    @id @db.Char(36)
+  plan_id    String    @db.Char(36)
+  field_id   String    @db.Char(36)
+  name       String    @db.Text
+  email      String?   @db.Text
+  start_time DateTime  @db.DateTime(0)
+  end_time   DateTime  @db.DateTime(0)
+  color      String?   @db.Text
+  position   Int?
+  created_at DateTime? @default(now()) @db.DateTime(0)
+  fields     fields    @relation(fields: [field_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "fk_assignments_field")
+  plans      plans     @relation(fields: [plan_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "fk_assignments_plan")
+
+  @@index([field_id], map: "idx_assignments_field_id")
+  @@index([plan_id], map: "idx_assignments_plan_id")
+}
+
+model auth_users {
+  id                                             String             @id @db.Char(36)
+  email                                          String?            @db.VarChar(255)
+  encrypted_password                             String?            @db.VarChar(255)
+  created_at                                     DateTime?          @db.DateTime(0)
+  updated_at                                     DateTime?          @db.DateTime(0)
+  analytics_events                               analytics_events[]
+  plan_archive_plan_archive_owner_idToauth_users plan_archive[]     @relation("plan_archive_owner_idToauth_users")
+  plan_archive_plan_archive_user_idToauth_users  plan_archive[]     @relation("plan_archive_user_idToauth_users")
+  plan_members                                   plan_members[]
+  plans                                          plans[]
+  profiles                                       profiles?
+}
+
+model fields {
+  id          String        @id @db.Char(36)
+  plan_id     String        @db.Char(36)
+  plan_tab_id String        @db.Char(36)
+  name        String        @db.Text
+  created_at  DateTime?     @default(now()) @db.DateTime(0)
+  assignments assignments[]
+  plans       plans         @relation(fields: [plan_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "fk_fields_plan")
+  plan_tabs   plan_tabs     @relation(fields: [plan_tab_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "fk_fields_plan_tab")
+
+  @@index([plan_id], map: "idx_fields_plan_id")
+  @@index([plan_tab_id], map: "idx_fields_plan_tab_id")
+}
+
+model plan_archive {
+  id                                           String     @id @db.Char(36)
+  plan_id                                      String     @db.Char(36)
+  plan_data                                    String     @db.LongText
+  archived_at                                  DateTime   @default(now()) @db.DateTime(0)
+  user_id                                      String     @db.Char(36)
+  owner_id                                     String     @db.Char(36)
+  auth_users_plan_archive_owner_idToauth_users auth_users @relation("plan_archive_owner_idToauth_users", fields: [owner_id], references: [id], onUpdate: Restrict, map: "fk_plan_archive_owner")
+  plans                                        plans      @relation(fields: [plan_id], references: [id], onUpdate: Restrict, map: "fk_plan_archive_plan")
+  auth_users_plan_archive_user_idToauth_users  auth_users @relation("plan_archive_user_idToauth_users", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "fk_plan_archive_user")
+
+  @@index([owner_id], map: "idx_plan_archive_owner_id")
+  @@index([plan_id], map: "idx_plan_archive_plan_id")
+  @@index([user_id], map: "idx_plan_archive_user_id")
+}
+
+model plan_members {
+  id         String     @id @db.Char(36)
+  plan_id    String     @db.Char(36)
+  user_id    String     @db.Char(36)
+  role       String     @db.Text
+  created_at DateTime?  @default(now()) @db.DateTime(0)
+  plans      plans      @relation(fields: [plan_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "fk_plan_members_plan")
+  auth_users auth_users @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "fk_plan_members_user")
+
+  @@unique([plan_id, user_id], map: "uq_plan_members_plan_user")
+  @@index([user_id], map: "idx_plan_members_user_id")
+}
+
+model plan_tabs {
+  id         String    @id @db.Char(36)
+  plan_id    String    @db.Char(36)
+  name       String    @db.Text
+  type       String    @db.Text
+  position   Int
+  created_at DateTime? @default(now()) @db.DateTime(0)
+  fields     fields[]
+  plans      plans     @relation(fields: [plan_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "fk_plan_tabs_plan")
+
+  @@index([plan_id], map: "idx_plan_tabs_plan_id")
+}
+
+model plans {
+  id               String             @id @db.Char(36)
+  title            String             @db.Text
+  description      String?            @db.Text
+  user_id          String             @db.Char(36)
+  is_team_plan     Boolean            @default(false)
+  created_at       DateTime?          @default(now()) @db.DateTime(0)
+  analytics_events analytics_events[]
+  assignments      assignments[]
+  fields           fields[]
+  plan_archive     plan_archive[]
+  plan_members     plan_members[]
+  plan_tabs        plan_tabs[]
+  auth_users       auth_users         @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "fk_plans_user")
+
+  @@index([user_id], map: "idx_plans_user_id")
+}
+
+model profiles {
+  id                  String     @id @db.Char(36)
+  display_name        String?    @db.Text
+  created_at          DateTime?  @default(now()) @db.DateTime(0)
+  updated_at          DateTime?  @default(now()) @db.DateTime(0)
+  theme               String?    @default("system") @db.Text
+  language            String?    @default("en") @db.Text
+  accent_color        String?    @default("blue") @db.Text
+  email_notifications Boolean    @default(true)
+  push_notifications  Boolean    @default(true)
+  two_factor_enabled  Boolean    @default(false)
+  auth_users          auth_users @relation(fields: [id], references: [id], onUpdate: Restrict, map: "fk_profiles_user")
+}
+
+model session {
+  id        String   @id @db.VarChar(36)
+  expiresAt DateTime @db.DateTime(0)
+  token     String   @unique(map: "token") @db.VarChar(255)
+  createdAt DateTime @db.DateTime(0)
+  updatedAt DateTime @db.DateTime(0)
+  ipAddress String?  @db.Text
+  userAgent String?  @db.Text
+  userId    String   @db.VarChar(36)
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "session_ibfk_1")
+
+  @@index([userId], map: "userId")
+}
+
+model user {
+  id            String    @id @db.VarChar(36)
+  name          String    @db.Text
+  email         String    @unique(map: "email") @db.VarChar(255)
+  emailVerified Boolean
+  image         String?   @db.Text
+  createdAt     DateTime  @default(now()) @db.DateTime(0)
+  updatedAt     DateTime  @default(now()) @db.DateTime(0)
+  account       account[]
+  session       session[]
+}
+
+model verification {
+  id         String    @id @db.VarChar(36)
+  identifier String    @db.Text
+  value      String    @db.Text
+  expiresAt  DateTime  @db.DateTime(0)
+  createdAt  DateTime? @default(now()) @db.DateTime(0)
+  updatedAt  DateTime? @default(now()) @db.DateTime(0)
+}

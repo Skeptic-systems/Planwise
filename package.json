@@ -6,8 +6,15 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "db:push": "node db-push.mjs",
-    "db:drop": "node db-drop.mjs"
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "prepare": "lefthook install",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "postinstall": "prisma generate",
+    "db:up": "docker compose up -d",
+    "db:down": "docker stop planwise_db planwise_phpmyadmin && docker rm planwise_db planwise_phpmyadmin"
   },
   "dependencies": {
     "@astrojs/react": "^4.2.1",
@@ -17,6 +24,8 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@planetscale/database": "^1.19.0",
+    "@prisma/client": "^6.16.2",
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-checkbox": "^1.1.3",
     "@radix-ui/react-context-menu": "^2.2.5",
@@ -38,7 +47,7 @@
     "@supabase/supabase-js": "^2.48.1",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
-    "astro": "^5.5.2",
+    "astro": "^5.12.3",
     "autoprefixer": "^10.4.21",
     "better-auth": "^1.3.7",
     "class-variance-authority": "^0.7.1",
@@ -48,7 +57,7 @@
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.1",
     "lucide-react": "^0.474.0",
-    "mysql2": "^3.14.3",
+    "mysql2": "^3.15.2",
     "next-themes": "^0.4.4",
     "postcss": "^8.4.21",
     "puppeteer-core": "^24.1.1",
@@ -64,6 +73,9 @@
   },
   "devDependencies": {
     "@astrojs/node": "^9.4.3",
+    "@biomejs/biome": "^1.9.4",
+    "lefthook": "^1.7.12",
+    "prisma": "^6.16.2",
     "ts-unused-exports": "^11.0.1"
   }
 }

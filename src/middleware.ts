@@ -1,21 +1,33 @@
 import { defineMiddleware } from "astro:middleware";
 import { auth } from "@/auth/auth";
+
 export const onRequest = defineMiddleware(async (ctx, next) => {
   const { pathname } = new URL(ctx.request.url);
 
-  if (pathname === "/" || pathname.startsWith("/api/") || pathname.includes(".")) {
+  // Skip middleware for static files and public routes
+  if (pathname.includes(".") || pathname === "/" || pathname.startsWith("/api/")) {
     return next();
   }
 
+  // Get session from Better Auth
   const session = await auth.api.getSession({ headers: ctx.request.headers });
 
-  const isProtected =
-    pathname.startsWith("/dashboard") || pathname.startsWith("/editor") || pathname.startsWith("/settings");
+  // Store session in locals for access in pages
+  ctx.locals.session = session;
 
-  if (isProtected && !session) return ctx.redirect("/login");
+  // Protected routes that require authentication
+  const protectedRoutes = ["/dashboard", "/editor", "/archive", "/settings"];
+  const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
 
-  ctx.locals.user = session?.user ?? null;
-  ctx.locals.session = session ?? null;
+  if (isProtectedRoute && !session) {
+    return ctx.redirect("/login");
+  }
+
+  // Redirect authenticated users away from auth pages
+  const authPages = ["/login", "/register"];
+  if (authPages.includes(pathname) && session) {
+    return ctx.redirect("/dashboard");
+  }
 
   return next();
 });

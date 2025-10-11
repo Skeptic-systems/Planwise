@@ -1,0 +1,9 @@
+pre-commit:
+  parallel: true
+  commands:
+    # biome:
+    #   glob: "*.{ts,tsx,js,jsx,json,md,mjs,cjs}"
+    #   run: pnpm exec biome check --apply --no-errors-on-unmatched {staged_files}
+
+
+

@@ -1,11 +1,17 @@
-import React, { useEffect, useState } from "react";
-import { Input } from "@/components/ui/elements/input";
 import { Button } from "@/components/ui/elements/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/overlays/dialog";
+import { Input } from "@/components/ui/elements/input";
 import { Switch } from "@/components/ui/elements/switch";
-import { Loader2, User, Palette, Bell, Lock, ArrowLeft } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/overlays/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { createAuthClient } from "better-auth/client";
+import { ArrowLeft, Bell, Loader2, Lock, Palette, User } from "lucide-react";
+import React, { useEffect, useState } from "react";
 
 const authClient = createAuthClient();
 
@@ -21,10 +27,30 @@ interface UserSettings {
 }
 
 const ACCENT_COLORS = [
-  { id: "blue",   gradient: "from-blue-500 to-blue-600",   text: "text-blue-500",   hover: "hover:text-blue-400" },
-  { id: "purple", gradient: "from-purple-500 to-purple-600", text: "text-purple-500", hover: "hover:text-purple-400" },
-  { id: "orange", gradient: "from-orange-500 to-orange-600", text: "text-orange-500", hover: "hover:text-orange-400" },
-  { id: "green",  gradient: "from-emerald-500 to-emerald-600", text: "text-emerald-500", hover: "hover:text-emerald-400" },
+  {
+    id: "blue",
+    gradient: "from-blue-500 to-blue-600",
+    text: "text-blue-500",
+    hover: "hover:text-blue-400",
+  },
+  {
+    id: "purple",
+    gradient: "from-purple-500 to-purple-600",
+    text: "text-purple-500",
+    hover: "hover:text-purple-400",
+  },
+  {
+    id: "orange",
+    gradient: "from-orange-500 to-orange-600",
+    text: "text-orange-500",
+    hover: "hover:text-orange-400",
+  },
+  {
+    id: "green",
+    gradient: "from-emerald-500 to-emerald-600",
+    text: "text-emerald-500",
+    hover: "hover:text-emerald-400",
+  },
 ];
 
 const getAccentClasses = (accentColor: string) => {
@@ -46,7 +72,9 @@ async function apiUpdateProfile(patch: Partial<UserSettings>) {
   });
   if (!res.ok) {
     let msg = "Update failed";
-    try { msg = (await res.json()).error ?? msg; } catch {}
+    try {
+      msg = (await res.json()).error ?? msg;
+    } catch {}
     throw new Error(msg);
   }
 }
@@ -66,7 +94,9 @@ export default function SettingsPage() {
   });
   const { toast } = useToast();
 
-  useEffect(() => { fetchUserSettings(); }, []);
+  useEffect(() => {
+    fetchUserSettings();
+  }, []);
 
   async function fetchUserSettings() {
     try {
@@ -101,29 +131,47 @@ export default function SettingsPage() {
       if (section === "display_name") patch.display_name = settings.display_name;
       if (section === "theme") patch.theme = settings.theme;
       if (section === "language") patch.language = settings.language;
-      if (section === "email_notifications") patch.email_notifications = settings.email_notifications;
+      if (section === "email_notifications")
+        patch.email_notifications = settings.email_notifications;
       if (section === "push_notifications") patch.push_notifications = settings.push_notifications;
       if (section === "two_factor_enabled") patch.two_factor_enabled = settings.two_factor_enabled;
 
       await apiUpdateProfile(patch);
       toast({ title: "Success", description: "Settings saved successfully" });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message || "Failed to save settings" });
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to save settings",
+      });
     } finally {
       setIsSaving(false);
     }
   }
 
-  const handleBackToDashboard = () => { window.location.href = "/dashboard"; };
+  const handleBackToDashboard = () => {
+    window.location.href = "/dashboard";
+  };
 
   const handleSaveAccentColor = async () => {
     try {
       setIsSaving(true);
       await apiUpdateProfile({ accent_color: settings.accent_color });
-      toast({ title: "Success", description: "Accent color saved successfully" });
+      toast({ title: "Success", description: "Accent color saved! Redirecting..." });
+
+      // Dispatch event to notify other components
+      window.dispatchEvent(new CustomEvent("profile:updated"));
+
+      // Navigate back to dashboard after short delay to show the toast
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 1500);
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message || "Failed to save accent color" });
-    } finally {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to save accent color",
+      });
       setIsSaving(false);
     }
   };
@@ -197,7 +245,9 @@ export default function SettingsPage() {
                       key={color.id}
                       onClick={() => setSettings({ ...settings, accent_color: color.id })}
                       className={`w-24 h-12 rounded-lg bg-gradient-to-r ${color.gradient} transition-all ${
-                        settings.accent_color === color.id ? "ring-2 ring-white ring-offset-2 ring-offset-background" : ""
+                        settings.accent_color === color.id
+                          ? "ring-2 ring-white ring-offset-2 ring-offset-background"
+                          : ""
                       }`}
                     />
                   ))}
@@ -218,7 +268,9 @@ export default function SettingsPage() {
               <div className="flex gap-3 items-start">
                 <select
                   value={settings.theme}
-                  onChange={(e) => setSettings({ ...settings, theme: e.target.value as UserSettings["theme"] })}
+                  onChange={(e) =>
+                    setSettings({ ...settings, theme: e.target.value as UserSettings["theme"] })
+                  }
                   className="w-full max-w-md p-2 rounded-lg bg-background border border-input"
                 >
                   <option value="system">System</option>
@@ -236,7 +288,12 @@ export default function SettingsPage() {
               <div className="flex gap-3 items-start">
                 <select
                   value={settings.language}
-                  onChange={(e) => setSettings({ ...settings, language: e.target.value as UserSettings["language"] })}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      language: e.target.value as UserSettings["language"],
+                    })
+                  }
                   className="w-full max-w-md p-2 rounded-lg bg-background border border-input"
                 >
                   <option value="en">English</option>
@@ -268,7 +325,11 @@ export default function SettingsPage() {
                 onCheckedChange={(checked) => {
                   setSettings({ ...settings, email_notifications: checked });
                   void apiUpdateProfile({ email_notifications: checked }).catch((e) =>
-                    toast({ variant: "destructive", title: "Error", description: e.message || "Failed to save" })
+                    toast({
+                      variant: "destructive",
+                      title: "Error",
+                      description: e.message || "Failed to save",
+                    }),
                   );
                 }}
               />
@@ -284,7 +345,11 @@ export default function SettingsPage() {
                 onCheckedChange={(checked) => {
                   setSettings({ ...settings, push_notifications: checked });
                   void apiUpdateProfile({ push_notifications: checked }).catch((e) =>
-                    toast({ variant: "destructive", title: "Error", description: e.message || "Failed to save" })
+                    toast({
+                      variant: "destructive",
+                      title: "Error",
+                      description: e.message || "Failed to save",
+                    }),
                   );
                 }}
               />
@@ -302,21 +367,32 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between max-w-md">
               <div>
                 <h3 className="font-medium">Two-Factor Authentication</h3>
-                <p className="text-sm text-gray-400">Add an extra layer of security to your account</p>
+                <p className="text-sm text-gray-400">
+                  Add an extra layer of security to your account
+                </p>
               </div>
               <Switch
                 checked={settings.two_factor_enabled}
                 onCheckedChange={(checked) => {
                   setSettings({ ...settings, two_factor_enabled: checked });
                   void apiUpdateProfile({ two_factor_enabled: checked }).catch((e) =>
-                    toast({ variant: "destructive", title: "Error", description: e.message || "Failed to save" })
+                    toast({
+                      variant: "destructive",
+                      title: "Error",
+                      description: e.message || "Failed to save",
+                    }),
                   );
                 }}
               />
             </div>
 
             <div>
-              <Button variant="outline" onClick={() => {/* TODO: password reset route here */}}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  /* TODO: password reset route here */
+                }}
+              >
                 Reset Password
               </Button>
             </div>
@@ -331,7 +407,8 @@ export default function SettingsPage() {
                     <DialogTitle>Delete Account?</DialogTitle>
                   </DialogHeader>
                   <p className="text-gray-400">
-                    This action cannot be undone. This will permanently delete your account and remove your data from our servers.
+                    This action cannot be undone. This will permanently delete your account and
+                    remove your data from our servers.
                   </p>
                   <div className="flex justify-end gap-3 mt-4">
                     <Button variant="ghost">Cancel</Button>

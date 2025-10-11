@@ -1,26 +1,40 @@
 export const prerender = false;
-import type { APIRoute } from "astro";
 import { auth } from "@/auth/auth";
-import { db } from "@/lib/db";
+import { prisma } from "@/lib/prisma";
+import type { APIRoute } from "astro";
 
 const MIN_PW_LEN = 8;
 
 async function upsertAuthUser(id: string, email: string) {
-  await db.query(
-    `INSERT INTO auth_users (id, email, created_at, updated_at)
-     VALUES (?, ?, NOW(), NOW())
-     ON DUPLICATE KEY UPDATE email = VALUES(email), updated_at = NOW()`,
-    [id, email]
-  );
+  await prisma.auth_users.upsert({
+    where: { id },
+    update: {
+      email,
+      updated_at: new Date(),
+    },
+    create: {
+      id,
+      email,
+      created_at: new Date(),
+      updated_at: new Date(),
+    },
+  });
 }
 
 async function upsertProfile(id: string, displayName: string) {
-  await db.query(
-    `INSERT INTO profiles (id, display_name, theme, language, accent_color)
-     VALUES (?, ?, 'system', 'en', 'blue')
-     ON DUPLICATE KEY UPDATE display_name = COALESCE(display_name, VALUES(display_name))`,
-    [id, displayName || "User"]
-  );
+  await prisma.profiles.upsert({
+    where: { id },
+    update: {
+      display_name: displayName || "User",
+    },
+    create: {
+      id,
+      display_name: displayName || "User",
+      theme: "system",
+      language: "en",
+      accent_color: "blue",
+    },
+  });
 }
 
 export const POST: APIRoute = async ({ request }) => {
@@ -40,7 +54,10 @@ export const POST: APIRoute = async ({ request }) => {
 
   if (!signUpRes.ok) {
     let msg = "Sign up failed";
-    try { const j = await signUpRes.clone().json(); msg = j?.message || j?.error || msg; } catch {}
+    try {
+      const j = await signUpRes.clone().json();
+      msg = j?.message || j?.error || msg;
+    } catch {}
     return new Response(msg, { status: signUpRes.status || 400 });
   }
 
@@ -52,15 +69,20 @@ export const POST: APIRoute = async ({ request }) => {
     const payload = await signUpRes.clone().json();
     baUserId = payload?.user?.id || payload?.data?.user?.id || null;
   } catch {
-    const rows: any[] = await db.query("SELECT id FROM user WHERE email = ? ORDER BY createdAt DESC LIMIT 1", [email]); 
-    baUserId = rows?.[0]?.id || null;
+    // Fallback: Query user table using Prisma
+    const userRow = await prisma.user.findFirst({
+      where: { email },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    });
+    baUserId = userRow?.id || null;
   }
   if (!baUserId) return new Response("Could not resolve user id after sign up", { status: 500 });
 
   await upsertAuthUser(baUserId, email);
   await upsertProfile(baUserId, displayName);
 
-  const hasSessionCookie = setCookie.some(c => /session|auth/i.test(c));
+  const hasSessionCookie = setCookie.some((c) => /session|auth/i.test(c));
   if (!hasSessionCookie) {
     const signInRes = await auth.api.signInEmail({
       body: { email, password, callbackURL: redirectTo, rememberMe: true },

@@ -2,6 +2,9 @@
 import Layout from "../layouts/Layout.astro";
 import { LoginForm } from "../auth/login-form";
 
+// Pre-render Login-Seite für bessere Performance
+export const prerender = true;
+
 const redirectTo = Astro.url.searchParams.get('redirectTo') || '/dashboard';
 ---
 
