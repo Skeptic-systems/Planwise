@@ -1,11 +1,3 @@
-// src/lib/supabase.ts
-// Supabase-like thin client that talks to our /api/db endpoint (MariaDB).
-// Goals:
-// - Keep API similar to supabase-js for select/insert/update/delete
-// - Fix UPDATE payload to be an OBJECT (not array) so /api/db won't build `SET `0` = ?`
-// - Do light DATETIME coercion: ISO strings like 'YYYY-MM-DDTHH:MM:SS(.sss)?Z' -> 'YYYY-MM-DD HH:MM:SS'
-// - Minimal "join" emulation for assignments -> fields via `select(`*, fields:field_id ( name, plan_tab_id )`)`
-
 type ApiError = { message: string };
 type ApiResult<T> = Promise<{ data: T | null; error: ApiError | null }>;
 
@@ -15,14 +7,16 @@ function isIsoDateTimeString(v: any): v is string {
 }
 
 function toMysqlDatetime(v: string): string {
-  // Keep wall-clock, avoid TZ shift: slice parts out of the ISO string
+  // IMPORTANT: Keep wall-clock time, avoid TZ shift!
+  // This extracts time portions directly without timezone conversion.
+  // DO NOT use new Date(v) as it will apply timezone offsets (+2h for CEST, etc.)
   const m = v.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
   if (m) return `${m[1]} ${m[2]}:${m[3]}:${m[4]}`;
   // Fallback to Date parse
   const d = new Date(v);
   if (!isNaN(d.getTime())) {
     const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   }
   return v;
 }
@@ -81,10 +75,10 @@ class Query<T = any> {
   constructor(private _table: string) {}
 
   // ---- fluent API (mimic supabase-js) ----
-select(cols: string | string[] = "*") {
-  this._columns = Array.isArray(cols) ? cols.join(",") : cols;
-  return this;
-}
+  select(cols: string | string[] = "*") {
+    this._columns = Array.isArray(cols) ? cols.join(",") : cols;
+    return this;
+  }
   insert(values: any[] | Record<string, any>) {
     this._op = "insert";
     this._values = Array.isArray(values) ? values : [values];
@@ -96,15 +90,39 @@ select(cols: string | string[] = "*") {
     this._values = coerceDateTime(values);
     return this;
   }
-  delete() { this._op = "delete"; return this; }
+  delete() {
+    this._op = "delete";
+    return this;
+  }
 
-  eq(column: string, value: any) { this._filters.push({ op: "eq", column, value }); return this; }
-  in(column: string, values: any[]) { this._filters.push({ op: "in", column, values }); return this; }
-  like(column: string, value: string) { this._filters.push({ op: "like", column, value }); return this; }
-  ilike(column: string, value: string) { this._filters.push({ op: "ilike", column, value }); return this; }
-  order(by: string, opts?: { ascending?: boolean }) { this._order = { by, ascending: opts?.ascending }; return this; }
-  limit(n: number) { this._limit = n; return this; }
-  single() { this._single = true; return this; }
+  eq(column: string, value: any) {
+    this._filters.push({ op: "eq", column, value });
+    return this;
+  }
+  in(column: string, values: any[]) {
+    this._filters.push({ op: "in", column, values });
+    return this;
+  }
+  like(column: string, value: string) {
+    this._filters.push({ op: "like", column, value });
+    return this;
+  }
+  ilike(column: string, value: string) {
+    this._filters.push({ op: "ilike", column, value });
+    return this;
+  }
+  order(by: string, opts?: { ascending?: boolean }) {
+    this._order = { by, ascending: opts?.ascending };
+    return this;
+  }
+  limit(n: number) {
+    this._limit = n;
+    return this;
+  }
+  single() {
+    this._single = true;
+    return this;
+  }
 
   private _payloadBase() {
     const base: any = {
@@ -175,12 +193,18 @@ select(cols: string | string[] = "*") {
 
     // 3) compose shape to mimic `fields:field_id (...)`
     const composed = assignments.map((a: any) => ({ ...a, fields: byId.get(a.field_id) || null }));
-    return this._single ? { data: (composed[0] ?? null), error: null } : { data: composed, error: null };
+    return this._single
+      ? { data: composed[0] ?? null, error: null }
+      : { data: composed, error: null };
   }
 
-  then(resolve: any, reject: any) { return this._run().then(resolve, reject); }
+  then(resolve: any, reject: any) {
+    return this._run().then(resolve, reject);
+  }
 }
 
-export function from<T = any>(table: string) { return new Query<T>(table); }
+export function from<T = any>(table: string) {
+  return new Query<T>(table);
+}
 export const supabase = { from } as const;
 export const supabaseServer = supabase;

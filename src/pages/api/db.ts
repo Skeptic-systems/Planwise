@@ -1,8 +1,8 @@
 // src/pages/api/db.ts
 export const prerender = false;
-import type { APIRoute } from "astro";
 import { auth } from "@/auth/auth";
-import { db } from "@/lib/db";
+import { prisma } from "@/lib/prisma";
+import type { APIRoute } from "astro";
 
 // Backtick-sanitizer for identifiers
 function id(name: string) {
@@ -41,7 +41,8 @@ function buildWhere(filters?: Filter[]) {
 // Simple uuid
 const genId = () =>
   // @ts-ignore
-  (globalThis.crypto?.randomUUID?.() ?? (Date.now().toString(36) + Math.random().toString(36).slice(2)));
+  globalThis.crypto?.randomUUID?.() ??
+  Date.now().toString(36) + Math.random().toString(36).slice(2);
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -57,7 +58,8 @@ export const POST: APIRoute = async ({ request }) => {
     if (op === "create_table" || op === "createTable") {
       const table = String(body?.table || "");
       const columns = Array.isArray(body?.columns) ? body.columns : [];
-      if (!table || !columns.length) return new Response("Missing table or columns", { status: 400 });
+      if (!table || !columns.length)
+        return new Response("Missing table or columns", { status: 400 });
 
       // very small DDL helper (unchanged behavior)
       const defs: string[] = [];
@@ -72,19 +74,29 @@ export const POST: APIRoute = async ({ request }) => {
       }
       if (pks.length) defs.push(`PRIMARY KEY (${pks.join(",")})`);
       const sql = `CREATE TABLE IF NOT EXISTS ${id(table)} (\n  ${defs.join(",\n  ")}\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`;
-      await db.query(sql);
-      return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "Content-Type": "application/json" } });
+      await prisma.$executeRawUnsafe(sql);
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     if (op === "ping") {
-      const [rows] = await db.query("SELECT 1 AS ok");
-      return new Response(JSON.stringify(rows), { status: 200, headers: { "Content-Type": "application/json" } });
+      const rows = await prisma.$queryRawUnsafe("SELECT 1 AS ok");
+      return new Response(JSON.stringify(rows), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
     // -------------------------------------------------
 
     // ====== generic CRUD for supabase-like shim ======
     const table = String(body?.table || "");
-    if (!table) return new Response(JSON.stringify({ error: "Missing table" }), { status: 400, headers: { "Content-Type": "application/json" } });
+    if (!table)
+      return new Response(JSON.stringify({ error: "Missing table" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
 
     // SELECT
     if (op === "select") {
@@ -101,24 +113,39 @@ export const POST: APIRoute = async ({ request }) => {
                 .join(", ");
 
       const { sql: whereSql, params } = buildWhere(body?.filters);
-      const orderSql = body?.order ? ` ORDER BY ${id(body.order.by)} ${body.order.ascending === false ? "DESC" : "ASC"}` : "";
+      const orderSql = body?.order
+        ? ` ORDER BY ${id(body.order.by)} ${body.order.ascending === false ? "DESC" : "ASC"}`
+        : "";
       const limitSql = body?.limit ? ` LIMIT ${Number(body.limit)}` : "";
 
-      const [rows] = await db.query(`SELECT ${cols} FROM ${id(table)}${whereSql}${orderSql}${limitSql}`, params);
+      const rows = await prisma.$queryRawUnsafe(
+        `SELECT ${cols} FROM ${id(table)}${whereSql}${orderSql}${limitSql}`,
+        ...params,
+      );
       const data = Array.isArray(rows) ? rows : [];
       if (body?.single) {
-        return new Response(JSON.stringify(data[0] ?? null), { status: 200, headers: { "Content-Type": "application/json" } });
+        return new Response(JSON.stringify(data[0] ?? null), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
       }
-      return new Response(JSON.stringify(data), { status: 200, headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify(data), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     // INSERT
     if (op === "insert") {
       const rows = Array.isArray(body?.values) ? body.values : [];
-      if (!rows.length) return new Response(JSON.stringify({ error: "No values" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      if (!rows.length)
+        return new Response(JSON.stringify({ error: "No values" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
 
       // add id if missing
-      const enriched = rows.map((r) => (("id" in r) && r.id ? r : { id: genId(), ...r }));
+      const enriched = rows.map((r) => ("id" in r && r.id ? r : { id: genId(), ...r }));
       const colset = new Set<string>();
       enriched.forEach((r) => Object.keys(r).forEach((k) => colset.add(k)));
       const cols = Array.from(colset);
@@ -126,7 +153,10 @@ export const POST: APIRoute = async ({ request }) => {
       const params: any[] = [];
       for (const r of enriched) for (const c of cols) params.push(r[c] ?? null);
 
-      await db.query(`INSERT INTO ${id(table)} (${cols.map(id).join(",")}) VALUES ${enriched.map(() => placeholders).join(",")}`, params);
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO ${id(table)} (${cols.map(id).join(",")}) VALUES ${enriched.map(() => placeholders).join(",")}`,
+        ...params,
+      );
 
       if (body?.returning || body?.single || body?.columns) {
         const ids = enriched.map((r) => r.id);
@@ -136,35 +166,63 @@ export const POST: APIRoute = async ({ request }) => {
             : Array.isArray(body?.columns)
               ? body.columns.map((c: string) => id(c)).join(", ")
               : "*";
-        const [rows2] = await db.query(`SELECT ${colStr} FROM ${id(table)} WHERE ${id("id")} IN (${ids.map(() => "?").join(",")})`, ids);
+        const rows2 = await prisma.$queryRawUnsafe(
+          `SELECT ${colStr} FROM ${id(table)} WHERE ${id("id")} IN (${ids.map(() => "?").join(",")})`,
+          ...ids,
+        );
         const data = Array.isArray(rows2) ? rows2 : [];
         if (body?.single) {
-          return new Response(JSON.stringify(data[0] ?? null), { status: 200, headers: { "Content-Type": "application/json" } });
+          return new Response(JSON.stringify(data[0] ?? null), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
         }
-        return new Response(JSON.stringify(data), { status: 200, headers: { "Content-Type": "application/json" } });
+        return new Response(JSON.stringify(data), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
       }
-      return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     // UPDATE
     if (op === "update") {
       const values = body?.values && typeof body.values === "object" ? body.values : null;
-      if (!values) return new Response(JSON.stringify({ error: "Missing values" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      if (!values)
+        return new Response(JSON.stringify({ error: "Missing values" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
 
       const keys = Object.keys(values);
-      if (!keys.length) return new Response(JSON.stringify({ error: "No columns to update" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      if (!keys.length)
+        return new Response(JSON.stringify({ error: "No columns to update" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
 
       const sets = keys.map((k) => `${id(k)} = ?`).join(", ");
       const setParams = keys.map((k) => values[k]);
 
       const { sql: whereSql, params: whereParams } = buildWhere(body?.filters);
-      if (!whereSql) return new Response(JSON.stringify({ error: "Missing WHERE filters" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      if (!whereSql)
+        return new Response(JSON.stringify({ error: "Missing WHERE filters" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
 
-      await db.query(`UPDATE ${id(table)} SET ${sets}${whereSql}`, [...setParams, ...whereParams]);
+      await prisma.$executeRawUnsafe(
+        `UPDATE ${id(table)} SET ${sets}${whereSql}`,
+        ...setParams,
+        ...whereParams,
+      );
 
       if (body?.returning || body?.single || body?.columns) {
         // try to return rows based on id filter(s)
-        let ids: any[] = [];
+        const ids: any[] = [];
         for (const f of body?.filters ?? []) {
           if (f.op === "eq" && f.column === "id") ids.push(f.value);
           if (f.op === "in" && f.column === "id") ids.push(...(f.values ?? []));
@@ -176,28 +234,50 @@ export const POST: APIRoute = async ({ request }) => {
               : Array.isArray(body?.columns)
                 ? body.columns.map((c: string) => id(c)).join(", ")
                 : "*";
-          const [rows2] = await db.query(`SELECT ${colStr} FROM ${id(table)} WHERE ${id("id")} IN (${ids.map(() => "?").join(",")})`, ids);
+          const rows2 = await prisma.$queryRawUnsafe(
+            `SELECT ${colStr} FROM ${id(table)} WHERE ${id("id")} IN (${ids.map(() => "?").join(",")})`,
+            ...ids,
+          );
           const data = Array.isArray(rows2) ? rows2 : [];
           if (body?.single) {
-            return new Response(JSON.stringify(data[0] ?? null), { status: 200, headers: { "Content-Type": "application/json" } });
+            return new Response(JSON.stringify(data[0] ?? null), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            });
           }
-          return new Response(JSON.stringify(data), { status: 200, headers: { "Content-Type": "application/json" } });
+          return new Response(JSON.stringify(data), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
         }
       }
-      return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     // DELETE
     if (op === "delete") {
       const { sql: whereSql, params } = buildWhere(body?.filters);
-      if (!whereSql) return new Response(JSON.stringify({ error: "Missing WHERE filters" }), { status: 400, headers: { "Content-Type": "application/json" } });
-      await db.query(`DELETE FROM ${id(table)}${whereSql}`, params);
-      return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "Content-Type": "application/json" } });
+      if (!whereSql)
+        return new Response(JSON.stringify({ error: "Missing WHERE filters" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      await prisma.$executeRawUnsafe(`DELETE FROM ${id(table)}${whereSql}`, ...params);
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     return new Response("Unknown action", { status: 400 });
   } catch (err: any) {
     console.error("[/api/db] error:", err?.stack || err?.message || err);
-    return new Response(JSON.stringify({ error: err?.message || "Internal error" }), { status: 500, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: err?.message || "Internal error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 };

@@ -1,0 +1,12 @@
+pre-commit:
+  parallel: true
+  commands:
+    format:
+      glob: "*.{ts,tsx,js,jsx,json,md,mjs,cjs}"
+      run: pnpm exec biome format --write --no-errors-on-unmatched {staged_files}
+    lint:
+      glob: "*.{ts,tsx,js,jsx}"
+      run: pnpm exec biome lint --write --no-errors-on-unmatched {staged_files}
+
+
+

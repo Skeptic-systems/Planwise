@@ -1,13 +1,33 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Skeleton } from '@/components/ui/skeleton';
-import { authClient } from '@/lib/auth-client';
+import { Skeleton } from "@/components/ui/skeleton";
+import { authClient } from "@/lib/auth-client";
+import type React from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 export const ACCENT_COLORS = [
-  { id: 'blue',   gradient: 'from-blue-500 to-blue-600',     text: 'text-blue-500',   hover: 'hover:text-blue-400' },
-  { id: 'purple', gradient: 'from-purple-500 to-purple-600', text: 'text-purple-500', hover: 'hover:text-purple-400' },
-  { id: 'orange', gradient: 'from-orange-500 to-orange-600', text: 'text-orange-500', hover: 'hover:text-orange-400' },
-  { id: 'green',  gradient: 'from-emerald-500 to-emerald-600', text: 'text-emerald-500', hover: 'hover:text-emerald-400' },
+  {
+    id: "blue",
+    gradient: "from-blue-500 to-blue-600",
+    text: "text-blue-500",
+    hover: "hover:text-blue-400",
+  },
+  {
+    id: "purple",
+    gradient: "from-purple-500 to-purple-600",
+    text: "text-purple-500",
+    hover: "hover:text-purple-400",
+  },
+  {
+    id: "orange",
+    gradient: "from-orange-500 to-orange-600",
+    text: "text-orange-500",
+    hover: "hover:text-orange-400",
+  },
+  {
+    id: "green",
+    gradient: "from-emerald-500 to-emerald-600",
+    text: "text-emerald-500",
+    hover: "hover:text-emerald-400",
+  },
 ];
 
 interface AccentColorContextType {
@@ -33,13 +53,20 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
           return;
         }
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('accent_color')
-          .eq('id', userId)
-          .single();
+        const response = await fetch("/api/profile", {
+          method: "GET",
+          credentials: "include",
+        });
 
-        setAccentColorState((profile?.accent_color as string) || ACCENT_COLORS[0].id);
+        if (response.ok) {
+          const profile = await response.json();
+          setAccentColorState(profile.accent_color || ACCENT_COLORS[0].id);
+        } else {
+          setAccentColorState(ACCENT_COLORS[0].id);
+        }
+      } catch (error) {
+        console.error("Error fetching accent color:", error);
+        setAccentColorState(ACCENT_COLORS[0].id);
       } finally {
         setIsLoading(false);
       }
@@ -48,17 +75,30 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
   }, []);
 
   const setAccentColor = async (color: string) => {
-    const { data: session } = await authClient.getSession();
-    const userId = session?.user?.id;
-    if (!userId) return;
+    try {
+      const response = await fetch("/api/profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ accent_color: color }),
+      });
 
-    await supabase.from('profiles').update({ accent_color: color }).eq('id', userId);
-    setAccentColorState(color);
+      if (response.ok) {
+        setAccentColorState(color);
+      } else {
+        console.error("Failed to update accent color");
+      }
+    } catch (error) {
+      console.error("Error updating accent color:", error);
+    }
   };
 
   if (isLoading) return <Skeleton className="h-6 w-24" />;
 
-  const color = ACCENT_COLORS.find(c => c.id === (accentColor || ACCENT_COLORS[0].id)) || ACCENT_COLORS[0];
+  const color =
+    ACCENT_COLORS.find((c) => c.id === (accentColor || ACCENT_COLORS[0].id)) || ACCENT_COLORS[0];
   const value: AccentColorContextType = {
     accentColor: color.id,
     accentClasses: { text: color.text, gradient: color.gradient, hover: color.hover },
@@ -70,6 +110,6 @@ export function AccentColorProvider({ children }: { children: React.ReactNode })
 
 export function useAccentColor() {
   const ctx = useContext(AccentColorContext);
-  if (!ctx) throw new Error('useAccentColor must be used within AccentColorProvider');
+  if (!ctx) throw new Error("useAccentColor must be used within AccentColorProvider");
   return ctx;
 }

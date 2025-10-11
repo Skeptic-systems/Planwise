@@ -1,33 +1,34 @@
-// components/Scheduler/FieldColumn.tsx
-import React, { useCallback, useRef, useState } from 'react';
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { useDroppable } from "@dnd-kit/core";
-import { SortableAssignment } from "../SortableAssignment";
-import { DroppableTimeSlot } from "../DroppableTimeSlot";
+import { PASTEL_COLORS } from "@/components/Hooks/useScheudler";
 import type { EmployeeAssignment } from "@/components/types/types";
-import { timeToMinutes } from "@/components/utils/timeUtils";
-import type { Session } from '@supabase/supabase-js';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/overlays/dialog';
-import { Input } from '@/components/ui/elements/input';
-import { Button } from '@/components/ui/elements/button';
-import { PASTEL_COLORS } from '@/components/Hooks/useScheudler';
-import { supabase } from '@/lib/supabase';
-import { toast } from '@/hooks/use-toast';
+import { Button } from "@/components/ui/elements/button";
 import {
   ContextMenu,
-  ContextMenuTrigger,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuTrigger,
 } from "@/components/ui/elements/context-menu";
+import { Input } from "@/components/ui/elements/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/overlays/dialog";
+import { timeToMinutes } from "@/components/utils/timeUtils";
+import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/db-client";
+import type { Session } from "@/lib/types";
+import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+// components/Scheduler/FieldColumn.tsx
+import type React from "react";
+import { useCallback, useRef, useState } from "react";
+import { ClickableTimeSlot } from "../ClickableTimeSlot";
+import { SortableAssignment } from "../SortableAssignment";
 
 // compute overlap columns (unchanged)
 function computeOverlaps(
   assignments: EmployeeAssignment[],
-  timeToMinutesFn: (time: string) => number
+  timeToMinutesFn: (time: string) => number,
 ): Record<string, { column: number; totalColumns: number }> {
   const sorted = [...assignments].sort(
-    (a, b) => timeToMinutesFn(a.startTime) - timeToMinutesFn(b.startTime)
+    (a, b) => timeToMinutesFn(a.startTime) - timeToMinutesFn(b.startTime),
   );
   const result: Record<string, { column: number; totalColumns: number }> = {};
   let currentGroup: EmployeeAssignment[] = [];
@@ -40,7 +41,9 @@ function computeOverlaps(
       for (const col of cols) {
         const last = col[col.length - 1];
         if (timeToMinutesFn(last.endTime) <= timeToMinutesFn(a.startTime)) {
-          col.push(a); placed = true; break;
+          col.push(a);
+          placed = true;
+          break;
         }
       }
       if (!placed) cols.push([a]);
@@ -48,7 +51,8 @@ function computeOverlaps(
     for (let i = 0; i < cols.length; i++) {
       for (const a of cols[i]) result[a.id] = { column: i, totalColumns: cols.length };
     }
-    currentGroup = []; lastEnd = 0;
+    currentGroup = [];
+    lastEnd = 0;
   };
   for (const a of sorted) {
     const s = timeToMinutesFn(a.startTime);
@@ -76,12 +80,15 @@ interface FieldColumnProps {
   updateField: (oldField: string, newField: string) => void;
   removeField: (field: string) => void;
   session: Session | null;
+  globalSelectedTimeSlot: { field: string; minutes: number } | null;
+  onGlobalTimeSlotSelect: (field: string, minutes: number) => void;
+  onGlobalTimeSlotClear: () => void;
 }
 
-const minutesToHHMM = (mins:number) => {
-  const h = Math.floor(mins/60);
-  const m = mins%60;
-  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+const minutesToHHMM = (mins: number) => {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 };
 
 export function FieldColumn({
@@ -98,7 +105,10 @@ export function FieldColumn({
   editorMode,
   updateField,
   removeField,
-  session
+  session,
+  globalSelectedTimeSlot,
+  onGlobalTimeSlotSelect,
+  onGlobalTimeSlotClear,
 }: FieldColumnProps) {
   const { setNodeRef } = useDroppable({
     id: `field-${field}`,
@@ -111,11 +121,12 @@ export function FieldColumn({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const lastClickMinutesRef = useRef<number>(9 * 60);
   const [addOpen, setAddOpen] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newEmail, setNewEmail] = useState('');
-  const [startTime, setStartTime] = useState('09:00');
-  const [endTime, setEndTime] = useState('09:30');
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [startTime, setStartTime] = useState("09:00");
+  const [endTime, setEndTime] = useState("09:30");
   const [color, setColor] = useState(PASTEL_COLORS[0]);
+  // Use global selection state instead of local
 
   const computeMinutesFromY = (clientY: number) => {
     const el = containerRef.current;
@@ -129,55 +140,90 @@ export function FieldColumn({
   };
 
   // do NOT preventDefault → lets ContextMenu open
-  const onContextMenu = useCallback((e: React.MouseEvent) => {
-    if (editorMode === 'delete') return;
-    lastClickMinutesRef.current = computeMinutesFromY(e.clientY);
-  }, [editorMode, pixelsPerHour, minuteStep]);
+  const onContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      if (editorMode === "delete") return;
+      lastClickMinutesRef.current = computeMinutesFromY(e.clientY);
+    },
+    [editorMode, pixelsPerHour, minuteStep],
+  );
 
   const openAddDialogAtLastClick = useCallback(() => {
     const s = lastClickMinutesRef.current;
-    const e = Math.min(24*60, s + 30);
+    const e = Math.min(24 * 60, s + 30);
     setStartTime(minutesToHHMM(s));
     setEndTime(minutesToHHMM(e));
     setAddOpen(true);
   }, []);
 
+  // Handle time slot selection (single click)
+  const handleTimeSlotSelect = useCallback(
+    (startMinutes: number) => {
+      onGlobalTimeSlotSelect(field, startMinutes);
+    },
+    [field, onGlobalTimeSlotSelect],
+  );
+
+  // Handle time slot double-click (open add dialog)
+  const handleTimeSlotDoubleClick = useCallback(
+    (startMinutes: number) => {
+      const endMinutes = Math.min(24 * 60, startMinutes + minuteStep);
+      setStartTime(minutesToHHMM(startMinutes));
+      setEndTime(minutesToHHMM(endMinutes));
+      setAddOpen(true);
+      onGlobalTimeSlotClear(); // Clear global selection when opening dialog
+    },
+    [minuteStep, onGlobalTimeSlotClear],
+  );
+
   // inside FieldColumn.tsx
-const handleAdd = useCallback(async () => {
-  try {
-    // required local state: newName, newEmail, startTime (HH:mm), endTime (HH:mm), color, planId, field
-    const payload = {
-      planId,
-      fieldName: field,                 // wir nutzen den sichtbaren Feldnamen
-      name: newName.trim() || "New",
-      email: newEmail.trim() || null,
-      startTime,                        // "HH:mm" -> Server setzt Tagesdatum + :00
-      endTime,
-      color: color || null,
-      // optional: date: "2025-08-24"  // falls du ein bestimmtes Datum erzwingen willst
-    };
+  const handleAdd = useCallback(async () => {
+    try {
+      // required local state: newName, newEmail, startTime (HH:mm), endTime (HH:mm), color, planId, field
+      const payload = {
+        planId,
+        fieldName: field, // wir nutzen den sichtbaren Feldnamen
+        name: newName.trim() || "New",
+        email: newEmail.trim() || null,
+        startTime, // "HH:mm" -> Server setzt Tagesdatum + :00
+        endTime,
+        color: color || null,
+        // optional: date: "2025-08-24"  // falls du ein bestimmtes Datum erzwingen willst
+      };
 
-    const res = await fetch("/api/assignments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(payload),
-    });
+      const res = await fetch("/api/assignments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
 
-    const body = await res.json();
-    if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
+      const body = await res.json();
+      if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
 
-    // UI close + optional refresh event (wie gehabt)
-    setAddOpen(false);
-    setNewName(""); setNewEmail("");
-    window.dispatchEvent(new CustomEvent("schedule:refresh", { detail: { planId } }));
-    toast({ title: "Saved", description: "Time added to database" });
-  } catch (err: any) {
-    console.error(err);
-    toast({ title: "Save failed", description: err?.message || "Unknown error" });
-  }
-}, [planId, field, newName, newEmail, startTime, endTime, color]);
+      // UI close + optional refresh event (wie gehabt)
+      setAddOpen(false);
+      setNewName("");
+      setNewEmail("");
+      onGlobalTimeSlotClear(); // Clear global selection after adding
+      window.dispatchEvent(new CustomEvent("schedule:refresh", { detail: { planId } }));
+      toast({ title: "Saved", description: "Time added to database" });
+    } catch (err: any) {
+      console.error(err);
+      toast({ title: "Save failed", description: err?.message || "Unknown error" });
+    }
+  }, [planId, field, newName, newEmail, startTime, endTime, color]);
 
+  // Clear selection when clicking outside
+  const handleContainerClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Only clear if clicking directly on the container, not on child elements
+      if (e.target === e.currentTarget) {
+        onGlobalTimeSlotClear();
+      }
+    },
+    [onGlobalTimeSlotClear],
+  );
 
   return (
     <ContextMenu>
@@ -190,39 +236,51 @@ const handleAdd = useCallback(async () => {
           style={{
             height: `${24 * pixelsPerHour}px`,
             backgroundImage: `
-              linear-gradient(to bottom, rgba(229,231,235,0.75) 0.5px, transparent 1px),
-              linear-gradient(to bottom, rgba(229,231,235,0.3) 0.5px, transparent 1px)
+              linear-gradient(to bottom, rgba(255,255,255,0.8) 0.5px, transparent 1px),
+              linear-gradient(to bottom, rgba(255,255,255,0.4) 0.5px, transparent 1px)
             `,
-            backgroundSize: `100% ${pixelsPerHour}px, 100% ${pixelsPerHour/2}px`,
+            backgroundSize: `100% ${pixelsPerHour}px, 100% ${pixelsPerHour / 2}px`,
           }}
         >
           {/* hit area for Y-position */}
           <div ref={containerRef} className="absolute inset-0 z-0 pointer-events-none" />
 
-          {/* Drop targets */}
+          {/* Clickable Time Slots (Outlook-style) */}
           <div className="absolute inset-0 z-10 pointer-events-auto">
             {allTimeSlots.map((minutes) => (
-              <DroppableTimeSlot
+              <ClickableTimeSlot
                 key={`${field}-${minutes}`}
                 id={`${field}-${minutes}`}
                 top={minutes * (pixelsPerHour / 60)}
                 height={minuteStep * (pixelsPerHour / 60)}
                 planId={planId}
                 session={session}
+                fieldName={field}
+                startMinutes={minutes}
+                minuteStep={minuteStep}
+                onDoubleClick={handleTimeSlotDoubleClick}
+                isSelected={
+                  globalSelectedTimeSlot?.field === field &&
+                  globalSelectedTimeSlot?.minutes === minutes
+                }
+                onSelect={handleTimeSlotSelect}
               />
             ))}
           </div>
 
           {/* Assignments */}
           <div className="absolute inset-0">
-            <SortableContext items={assignments.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+            <SortableContext
+              items={assignments.map((a) => a.id)}
+              strategy={verticalListSortingStrategy}
+            >
               {assignments.map((assignment) => (
                 <SortableAssignment
                   key={assignment.id}
                   assignment={assignment}
                   removeAssignment={removeAssignment}
                   timeToMinutes={(time) => {
-                    const [h, m] = time.split(':').map(Number);
+                    const [h, m] = time.split(":").map(Number);
                     return h * 60 + m;
                   }}
                   updateAssignment={updateAssignment}
@@ -240,7 +298,10 @@ const handleAdd = useCallback(async () => {
       <ContextMenuContent className="bg-gray-900 border-gray-800">
         <ContextMenuItem
           className="text-white hover:bg-gray-800 cursor-pointer"
-          onSelect={(e) => { e.preventDefault(); openAddDialogAtLastClick(); }}
+          onSelect={(e) => {
+            e.preventDefault();
+            openAddDialogAtLastClick();
+          }}
         >
           Add time…
         </ContextMenuItem>
@@ -257,33 +318,65 @@ const handleAdd = useCallback(async () => {
           <div className="space-y-3">
             <div>
               <label className="text-sm">Name</label>
-              <Input value={newName} onChange={(e)=>setNewName(e.target.value)} className="text-black" placeholder="Task / Person" />
+              <Input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className="text-black"
+                placeholder="Task / Person"
+              />
             </div>
             <div>
               <label className="text-sm">Email (optional)</label>
-              <Input value={newEmail} onChange={(e)=>setNewEmail(e.target.value)} className="text-black" placeholder="example@mail.com" />
+              <Input
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                className="text-black"
+                placeholder="example@mail.com"
+              />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm">Start</label>
-                <Input type="time" value={startTime} onChange={(e)=>setStartTime(e.target.value)} className="text-black" />
+                <Input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="text-black"
+                />
               </div>
               <div>
                 <label className="text-sm">End</label>
-                <Input type="time" value={endTime} onChange={(e)=>setEndTime(e.target.value)} className="text-black" />
+                <Input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="text-black"
+                />
               </div>
             </div>
             <div>
               <label className="text-sm">Color</label>
               <div className="flex gap-2 mt-2">
-                {PASTEL_COLORS.map(c => (
-                  <div key={c} onClick={()=>setColor(c)} className={`w-6 h-6 rounded-full ring-2 ring-transparent cursor-pointer ${c} ${color===c?'ring-white':''}`} />
+                {PASTEL_COLORS.map((c) => (
+                  <div
+                    key={c}
+                    onClick={() => setColor(c)}
+                    className={`w-6 h-6 rounded-full ring-2 ring-transparent cursor-pointer ${c} ${color === c ? "ring-white" : ""}`}
+                  />
                 ))}
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={()=>setAddOpen(false)} className="hover:bg-white hover:text-black">Cancel</Button>
-              <Button onClick={handleAdd} className="bg-primary hover:bg-white hover:text-black">Add</Button>
+              <Button
+                variant="outline"
+                onClick={() => setAddOpen(false)}
+                className="hover:bg-white hover:text-black"
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleAdd} className="bg-primary hover:bg-white hover:text-black">
+                Add
+              </Button>
             </div>
           </div>
         </DialogContent>

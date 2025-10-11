@@ -1,13 +1,20 @@
-import React, { useState } from 'react';
-import { type Session } from '@supabase/supabase-js';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/overlays/dialog';
-import { Button } from '@/components/ui/elements/button';
-import { Input } from '@/components/ui/elements/input';
-import { Label } from '@/components/ui/elements/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/elements/switch';
-import { useToast } from '@/hooks/use-toast';
-import { Users, User, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Button } from "@/components/ui/elements/button";
+import { Input } from "@/components/ui/elements/input";
+import { Label } from "@/components/ui/elements/label";
+import { Switch } from "@/components/ui/elements/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/overlays/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import type { Session } from "@/lib/types";
+import { AlertCircle, CheckCircle2, User, Users } from "lucide-react";
+import type React from "react";
+import { useState } from "react";
 
 interface CreatePlanDialogProps {
   open: boolean;
@@ -16,10 +23,15 @@ interface CreatePlanDialogProps {
   onPlanCreated: () => void;
 }
 
-export function CreatePlanDialog({ open, onOpenChange, session, onPlanCreated }: CreatePlanDialogProps) {
+export function CreatePlanDialog({
+  open,
+  onOpenChange,
+  session,
+  onPlanCreated,
+}: CreatePlanDialogProps) {
   const { toast } = useToast();
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [isTeamPlan, setIsTeamPlan] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -43,8 +55,8 @@ export function CreatePlanDialog({ open, onOpenChange, session, onPlanCreated }:
         body: JSON.stringify({
           title: title.trim(),
           description: description.trim() || null,
-          is_team_plan: isTeamPlan
-        })
+          is_team_plan: isTeamPlan,
+        }),
       });
 
       if (!res.ok) {
@@ -55,16 +67,24 @@ export function CreatePlanDialog({ open, onOpenChange, session, onPlanCreated }:
       const data = await res.json();
       if (!data?.id) throw new Error("Create failed");
 
-      toast({ title: "Success", description: "Plan created successfully", className: "border-emerald-500" });
+      toast({
+        title: "Success",
+        description: "Plan created successfully",
+        className: "border-emerald-500",
+      });
       onOpenChange(false);
       onPlanCreated();
 
-      setTitle('');
-      setDescription('');
+      setTitle("");
+      setDescription("");
       setIsTeamPlan(false);
     } catch (error: any) {
-      console.error('Create plan error:', error);
-      toast({ variant: "destructive", title: "Error", description: error?.message || "Failed to create plan" });
+      console.error("Create plan error:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error?.message || "Failed to create plan",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -75,7 +95,9 @@ export function CreatePlanDialog({ open, onOpenChange, session, onPlanCreated }:
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New Plan</DialogTitle>
-          <DialogDescription>Create a new plan to start organizing your schedule.</DialogDescription>
+          <DialogDescription>
+            Create a new plan to start organizing your schedule.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -109,9 +131,19 @@ export function CreatePlanDialog({ open, onOpenChange, session, onPlanCreated }:
           </div>
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? <><AlertCircle className="w-4 h-4 mr-2" /> Saving...</> : <><CheckCircle2 className="w-4 h-4 mr-2" /> Create</>}
+              {isSubmitting ? (
+                <>
+                  <AlertCircle className="w-4 h-4 mr-2" /> Saving...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4 mr-2" /> Create
+                </>
+              )}
             </Button>
           </div>
         </form>

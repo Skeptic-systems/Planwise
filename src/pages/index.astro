@@ -2,8 +2,11 @@
 import LandingPage from '../components/Landingpage/landingpage';
 import Layout from '../layouts/Layout.astro';
 import "../../src/components/styles/global.css";
+
+// Pre-render die Landing Page für maximale Performance
+export const prerender = true;
 ---
 
 <Layout title="Planwise - Home">
-	<LandingPage client:load />
+	<LandingPage client:visible />
 </Layout>

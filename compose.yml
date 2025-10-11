@@ -40,7 +40,7 @@ services:
 #  planwise:
 #    build:
 #      context: .
-#      dockerfile: ../dockerfile
+#      Dockerfile: Dockerfile
 #    container_name: planwise-app
 #    restart: unless-stopped
 #    environment:
