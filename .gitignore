@@ -32,4 +32,4 @@ better-auth_migrations/
 *.zip
 
 # Db Data
-build/db_data/
+db_data/
