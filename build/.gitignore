@@ -1,4 +1,0 @@
-# exclude local env
-.env
-# exclude DB Data
-.db_data/
